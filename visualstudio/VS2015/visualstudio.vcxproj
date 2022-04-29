@@ -128,6 +128,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\animation.cpp" />
     <ClCompile Include="..\..\src\camera.cpp" />
+    <ClCompile Include="..\..\src\entity.cpp" />
     <ClCompile Include="..\..\src\extra\coldet\box.cpp" />
     <ClCompile Include="..\..\src\extra\coldet\box_bld.cpp" />
     <ClCompile Include="..\..\src\extra\coldet\coldet.cpp" />
@@ -146,6 +147,7 @@
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\mesh.cpp" />
     <ClCompile Include="..\..\src\rendertotexture.cpp" />
+    <ClCompile Include="..\..\src\scene.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
     <ClCompile Include="..\..\src\texture.cpp" />
     <ClCompile Include="..\..\src\utils.cpp" />
@@ -153,6 +155,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\animation.h" />
     <ClInclude Include="..\..\src\camera.h" />
+    <ClInclude Include="..\..\src\entity.h" />
     <ClInclude Include="..\..\src\extra\coldet\box.h" />
     <ClInclude Include="..\..\src\extra\coldet\coldet.h" />
     <ClInclude Include="..\..\src\extra\coldet\coldetimpl.h" />
@@ -169,6 +172,7 @@
     <ClInclude Include="..\..\src\input.h" />
     <ClInclude Include="..\..\src\mesh.h" />
     <ClInclude Include="..\..\src\rendertotexture.h" />
+    <ClInclude Include="..\..\src\scene.h" />
     <ClInclude Include="..\..\src\shader.h" />
     <ClInclude Include="..\..\src\texture.h" />
     <ClInclude Include="..\..\src\utils.h" />
