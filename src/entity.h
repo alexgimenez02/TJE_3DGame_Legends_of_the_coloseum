@@ -11,12 +11,17 @@
 class Entity
 {
 public:
-	Entity(); //constructor
-	virtual ~Entity(); //destructor
+	//Entity(); //constructor
+	//virtual ~Entity(); //destructor
 
 	//some attributes
 	string name;
+	Mesh* mesh;
 	Matrix44 model;
+	Texture* texture;
+	Shader* shader;
+	Vector4 color;
+	Vector3 scale;
 
 	//pointer to my parent entity
 	Entity* parent;
@@ -43,9 +48,11 @@ class EntityMesh : Entity
 {
 public:
 	Mesh* mesh;
+	Matrix44 model;
 	Texture* texture;
 	Shader* shader;
 	Vector4 color;
+	Vector3 scale;
 
 	//methods overwritten
 	void render();

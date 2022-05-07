@@ -27,6 +27,8 @@ void Entity::destroy() {
 }
 
 
+
+
 //EntityMesh
 void EntityMesh::render()
 {
