@@ -20,7 +20,7 @@ FBO* fbo = NULL;
 
 float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
-bool cameraLocked = true;
+bool cameraLocked = false;
 
 class Entity {
 public:
@@ -61,7 +61,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	//Goblin
 	
 	goblin.texture = new Texture();
-	goblin.texture->load("data/goblin.png");
+	goblin.texture->load("data/mago.png");
 	//Terrain
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
@@ -70,7 +70,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	tex = new Texture();
 	tex->load("data/terrain.tga");
 	// example of loading Mesh from Mesh Manager
-	goblin.mesh = Mesh::Get("data/goblin.obj");
+	goblin.mesh = Mesh::Get("data/mago.obj");
 	terrain.mesh = Mesh::Get("data/terrain.ASE");
 	mesh = Mesh::Get("data/terrain.ASE");
 	

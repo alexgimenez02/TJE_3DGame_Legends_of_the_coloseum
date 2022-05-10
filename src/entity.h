@@ -11,26 +11,22 @@
 class Entity
 {
 public:
-	//Entity(); //constructor
-	//virtual ~Entity(); //destructor
-
 	//some attributes
 	string name;
-	Mesh* mesh;
 	Matrix44 model;
-	Texture* texture;
-	Shader* shader;
-	Vector4 color;
-	Vector3 scale;
 
 	//pointer to my parent entity
 	Entity* parent;
 	//pointers to my children
-	std::vector<Entity*> children;
+	vector<Entity*> children;
+
+	Entity(); //constructor
+	virtual ~Entity() = 0; //destructor
 
 	//methods overwritten by derived classes
-	virtual void render();
-	virtual void update(float elapsed_time);
+	virtual void render() = 0;
+	virtual void update(float elapsed_time) = 0;
+
 
 	//methods
 	void addChild(Entity* ent);
@@ -48,10 +44,8 @@ class EntityMesh : Entity
 {
 public:
 	Mesh* mesh;
-	Matrix44 model;
 	Texture* texture;
 	Shader* shader;
-	Vector4 color;
 	Vector3 scale;
 
 	//methods overwritten
@@ -59,4 +53,18 @@ public:
 	void update(float elapsed_time);
 };
 
+
+class EntityMap : Entity
+{
+public:
+	Mesh* mesh;
+	Texture* texture;
+	Shader* shader;
+	Vector3 scale;
+
+
+	//Methods overwritten
+	void render();
+	void update(float elapsed_time);	
+};
 #endif // !ENTITY_H

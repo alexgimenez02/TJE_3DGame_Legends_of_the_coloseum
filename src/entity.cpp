@@ -2,14 +2,12 @@
 
 //Entity
 
-void Entity::render()
+void Entity::addChild(Entity* ent)
 {
-    //if this was an EntityMesh...
-    //Matrix44 model = getGlobalMatrix();
-    //render code...
+}
 
-    for (int i = 0; i < children.size(); i++)
-        children[i]->render();  //repeat for every child
+void Entity::removeChild(Entity* ent)
+{
 }
 
 //get the global transformation of this object (not the relative to the parent)
@@ -21,10 +19,15 @@ Matrix44 Entity::getGlobalMatrix()
     return model; //otherwise just return my model as global
 }
 
-void Entity::destroy() {
-    //s_to_destroy.push_back(this);
-    //for every children call destroy()
+void Entity::destroy()
+{
 }
+
+Vector3 Entity::getPosition()
+{
+    return Vector3();
+}
+
 
 
 
@@ -48,8 +51,27 @@ void EntityMesh::render()
     //render the mesh using the shader
     // 
     // 
-    //mesh->render(GL_TRIANGLES, shader);
+    /*for (int i = 0; i < children.size(); i++)
+        children[i]->render();  //repeat for every child
+    */
+    mesh->render(GL_TRIANGLES);
 
     //disable the shader after finishing rendering
     shader->disable();
+}
+
+void EntityMesh::update(float elapsed_time)
+{
+}
+
+
+
+//EntityMap
+
+void EntityMap::render()
+{
+}
+
+void EntityMap::update(float elapsed_time)
+{
 }
