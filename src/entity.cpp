@@ -1,4 +1,5 @@
 #include "entity.h"
+#include "game.h"
 
 //Entity
 
@@ -70,6 +71,30 @@ void EntityMesh::update(float elapsed_time)
 
 void EntityMap::render()
 {
+    if (shader)
+    {
+        Camera * camera = Game::instance->camera;
+        shader->enable();
+
+        //upload uniforms
+        shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+        shader->setUniform("u_viewprojection",camera->viewprojection_matrix);
+        shader->setUniform("u_texture", texture, 0);
+        shader->setUniform("u_time", time);
+        shader->setUniform("u_tex_tiling", 1.0f);
+
+        //float padding = 10000.0f;
+        
+        model.setTranslation(camera->eye.x, camera->eye.y - 10.0f, camera->eye.z);
+        shader->setUniform("u_model", model);
+
+
+        //do the draw call
+        mesh->render(GL_TRIANGLES);
+
+        //disable shader
+        shader->disable();
+    }
 }
 
 void EntityMap::update(float elapsed_time)

@@ -15,22 +15,20 @@ Texture* tex = NULL;
 Shader* shader = NULL;
 Animation* anim = NULL;
 float angle = 0, padding = 10.0f;
-float mouse_speed = 100.0f;
+float mouse_speed = 1.0f;
 FBO* fbo = NULL;
 
 float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
-bool cameraLocked = false;
+bool cameraLocked = false, yAxisCam = false, checkCol = false;
 
-class Entity {
-public:
-	Matrix44 model;
-	Mesh* mesh;
-	Texture* texture;
-};
-Entity goblin;
-Entity terrain;
+EntityMesh goblin;
+EntityMap terrain;
+EntityMap sky;
 
+Mesh* groundMesh;
+Texture* groundTex;
+vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
@@ -66,52 +64,34 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
 
+	sky.texture = new Texture();
+	sky.texture->load("data/cielo.tga");
+
 	//Goblins
 	tex = new Texture();
 	tex->load("data/terrain.tga");
 	// example of loading Mesh from Mesh Manager
 	goblin.mesh = Mesh::Get("data/mago.obj");
 	terrain.mesh = Mesh::Get("data/terrain.ASE");
-	mesh = Mesh::Get("data/terrain.ASE");
+	sky.mesh = Mesh::Get("data/cielo.ASE");
+	mesh = Mesh::Get("data/minihouse.obj");
+
+	groundMesh = new Mesh();
+	groundMesh->createPlane(1000);
+	groundTex = Texture::Get("data/grass.tga");
 	
 	// example of shader loading using the shaders manager
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+
+	goblin.shader = shader;
+	terrain.shader = shader;
+	sky.shader = shader;
+
 
 	//hide the cursor
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
-void RenderIslands() {
-	if (shader)
-	{
-		//enable shader
-		shader->enable();
-
-		//upload uniforms
-		shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-		shader->setUniform("u_viewprojection", Game::instance->camera->viewprojection_matrix);
-		shader->setUniform("u_texture", tex, 0);
-		shader->setUniform("u_time", time);
-
-		//float padding = 10000.0f;
-		Matrix44 m;
-		for (size_t i = 0; i < 10; i++)
-		{
-			for (size_t j = 0; j < 10; j++)
-			{
-				Vector3 size = mesh->box.halfsize * 2;
-				m.setTranslation(size.x * i, 0.0f, size.z * j);
-				shader->setUniform("u_model", m);
-				mesh->render(GL_TRIANGLES);
-			}
-		}
-
-		//do the draw call
-
-		//disable shader
-		shader->disable();
-	}
-}
 
 void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam) {
 	//assert(a_mesh != null, "mesh in renderMesh was null");
@@ -119,12 +99,12 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 
 	//enable shader
 	a_shader->enable();
-	model.scale(5.0f, 5.0f, 5.0f);
 	//upload uniforms
 	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
 	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
 	a_shader->setUniform("u_texture", tex, 0);
 	a_shader->setUniform("u_time", time);
+	a_shader->setUniform("u_tex_tiling", 1.0f);
 
 	shader->setUniform("u_model", model);
 	a_mesh->render(GL_TRIANGLES);
@@ -133,7 +113,41 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	a_shader->disable();
 
 }
+void RenderPlane(float tiling){
+	if (shader)
+	{
+		//enable shader
+		shader->enable();
 
+		//upload uniforms
+		shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+		shader->setUniform("u_viewprojection", Game::instance->camera->viewprojection_matrix);
+		shader->setUniform("u_texture", groundTex, 0);
+		shader->setUniform("u_time", time);
+		shader->setUniform("u_tex_tiling", tiling);
+
+		//float padding = 10000.0f;
+		Matrix44 m;
+		for (size_t i = 0; i < 20; i++)
+		{
+			for (size_t j = 0; j < 20; j++)
+			{
+
+				Vector3 size = groundMesh->box.halfsize * 2;
+				m.setTranslation(size.x * i, 0.0f, size.z * j);
+				shader->setUniform("u_model", m);
+				groundMesh->render(GL_TRIANGLES);
+			}
+
+		}
+		
+
+		//do the draw call
+
+		//disable shader
+		shader->disable();
+	}
+}
 //what to do when the image has to be draw
 void Game::render(void)
 {
@@ -146,8 +160,10 @@ void Game::render(void)
 	//set the camera as default
 	if (cameraLocked) {
 
-		Vector3 eye = goblin.model * Vector3(0.0f, 8.0f, -5.0f);
-		Vector3 center = goblin.model * Vector3(0.0f, 0.0f, 10.0f);
+		Vector3 eye = goblin.model * Vector3(0.1f, 7.0f, 2.25f);
+		Vector3 center = camera->center;
+		if(!yAxisCam)
+			center = goblin.model * Vector3(0.0f, 5.0f, 8.25f);
 		Vector3 up = goblin.model.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
 		camera->enable();
 		camera->lookAt(eye, center, up);
@@ -163,54 +179,18 @@ void Game::render(void)
 	//m.rotate(angle*DEG2RAD, Vector3(0, 1, 0));
 	//m.scale(50.0f, 50.0f, 50.0f);
 	Camera* cam = Game::instance->camera;
-	RenderMesh(goblin.model,goblin.mesh,goblin.texture,shader,cam);
-	RenderIslands();
-	/*if (shader)
+	glDisable(GL_DEPTH_TEST);
+	sky.render();
+	glEnable(GL_DEPTH_TEST);
+	if (!meshes.empty())
 	{
-		shader->enable();
-		//enable shader
-
-		//upload uniforms
-		
-		shader->setUniform("u_color", Vector4(1,1,1,1));
-		shader->setUniform("u_viewprojection", camera->viewprojection_matrix );
-		shader->setUniform("u_texture", texture, 0);
-		shader->setUniform("u_time", time);
-
-		for (size_t i = 0; i < 5; i++)
+		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			for (size_t j = 0; j < 5; j++)
-			{
-
-				Matrix44 m;
-				m.scale(padding * 2, padding * 2, padding * 2);
-				m.translate(i * padding, 0.0f, j * padding);
-
-				Vector3 planePos = m.getTranslation();
-
-				Vector3 camPos = cam->eye;
-
-				float dist = planePos.distance(camPos);
-
-				if (dist > no_render_distance) continue;
-
-				Mesh* mesh = Mesh::Get("data/goblin.obj");
-				if (dist < loadDistance) mesh = Mesh::Get("data/goblin.obj");
-
-				BoundingBox worldAABB = transformBoundingBox(m,mesh->box);
-				if (!cam->testBoxInFrustum(worldAABB.center, worldAABB.halfsize)) continue;
-
-				//do the draw call
-				shader->setUniform("u_model", m);
-				mesh->render( GL_TRIANGLES );
-
-			}
+			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
-
-		
-		//disable shader
-		shader->disable();
-	}*/
+	}
+	RenderMesh(goblin.model,goblin.mesh,goblin.texture,shader,cam);
+	RenderPlane(60.0f);
 
 	//Draw the floor grid
 	//drawGrid();
@@ -221,7 +201,48 @@ void Game::render(void)
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(this->window);
 }
+//Adding entities
+void AddEntityInFront(Camera* cam, const char* meshName, const char* texName)
+{
+	Vector2 mouse = Input::mouse_position;
+	Game* g = Game::instance;
+	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, g->window_width, g->window_height);
+	Vector3 rayOrigin = cam->eye;
 
+	Vector3 spawnPos = RayPlaneCollision(Vector3(), Vector3(0, 1, 0), rayOrigin, dir);
+	Matrix44 model;
+	model.translate(spawnPos.x, spawnPos.y, spawnPos.z);
+	model.scale(3.0f, 3.0f, 3.0f);
+
+	EntityMesh* entity = new EntityMesh();
+	entity->model = model;
+	entity->mesh = Mesh::Get(meshName); 
+	if (texName != "")
+		entity->texture = Texture::Get(texName);
+	else
+		entity->texture = new Texture();
+	meshes.push_back(entity);
+}
+
+//Checking  ray colision
+void CheckCol(Camera* cam)
+{
+	Vector2 mouse = Input::mouse_position;
+	Game* g = Game::instance;
+	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, g->window_width, g->window_height);
+	Vector3 rayOrigin = cam->eye;
+	for (size_t i = 0; i < meshes.size(); i++)
+	{
+		EntityMesh* entity = meshes[i];
+		Vector3 pos;
+		Vector3 normal;
+		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
+		{
+			cout << "col" << endl;
+			break;
+		} 
+	}
+}
 void Game::update(double seconds_elapsed)
 {
 	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
@@ -232,10 +253,23 @@ void Game::update(double seconds_elapsed)
 	//mouse input to rotate the cam
 	if ((Input::mouse_state & SDL_BUTTON_LEFT) || mouse_locked ) //is left button pressed?
 	{
-		camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f,-1.0f,0.0f));
-		camera->rotate(Input::mouse_delta.y * 0.005f, camera->getLocalVector( Vector3(-1.0f,0.0f,0.0f)));
+		if (cameraLocked)
+		{
+			
+			goblin.model.rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f, 1.0f, 0.0f));
+			if (Input::mouse_delta.y != 0)
+			{
+				yAxisCam = true;
+				camera->rotate(Input::mouse_delta.y * 0.005f, camera->getLocalVector( Vector3(-1.0f,0.0f,0.0f)));
+			}
+						
+		}
+		else {
+			camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f,-1.0f,0.0f));
+			camera->rotate(Input::mouse_delta.y * 0.005f, camera->getLocalVector( Vector3(-1.0f,0.0f,0.0f)));
+		}
 	}
-
+	
 	//async input to move the camera around
 	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) cameraLocked = !cameraLocked;
 	if (cameraLocked) {
@@ -272,7 +306,17 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 	{
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
-	}
+		case SDLK_F2: 
+			cout << "Camera positions: \nEye: (" << camera->eye.x << "," << camera->eye.y << "," << camera->eye.z << ")\n"
+				<< "Center: (" << camera->center.x << ", " << camera->center.y << ", " << camera->center.z << ")\n"
+				<< "Up: (" << camera->up.x << ", " << camera->up.y << ", " << camera->up.z << ")\n" << endl;
+			break;
+		case SDLK_F3:
+			checkCol = !checkCol;
+			if (checkCol) cout << "Checking colisions!" << endl;
+			else cout << "Adding entities!" << endl;
+			break;
+	} 
 }
 
 void Game::onKeyUp(SDL_KeyboardEvent event)
@@ -295,6 +339,18 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 	{
 		mouse_locked = !mouse_locked;
 		SDL_ShowCursor(!mouse_locked);
+	}
+	if (event.button == SDL_BUTTON_RIGHT)
+	{
+		if (!checkCol)
+		{
+			AddEntityInFront(camera, "data/minihouse.obj", "");
+			cout << "Object added" << endl;
+		}
+		else
+		{
+			CheckCol(camera);
+		}
 	}
 }
 

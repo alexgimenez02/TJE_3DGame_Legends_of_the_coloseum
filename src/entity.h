@@ -20,8 +20,8 @@ public:
 	//pointers to my children
 	vector<Entity*> children;
 
-	Entity(); //constructor
-	virtual ~Entity() = 0; //destructor
+	Entity(){}; //constructor
+	virtual ~Entity() {}; //destructor
 
 	//methods overwritten by derived classes
 	virtual void render() = 0;
@@ -44,10 +44,13 @@ class EntityMesh : Entity
 {
 public:
 	Mesh* mesh;
+	Matrix44 model;
 	Texture* texture;
 	Shader* shader;
 	Vector3 scale;
 
+	EntityMesh(){};
+	~EntityMesh(){};
 	//methods overwritten
 	void render();
 	void update(float elapsed_time);
@@ -58,11 +61,13 @@ class EntityMap : Entity
 {
 public:
 	Mesh* mesh;
+	Matrix44 model;
 	Texture* texture;
 	Shader* shader;
 	Vector3 scale;
 
-
+	EntityMap() {};
+	~EntityMap() {};
 	//Methods overwritten
 	void render();
 	void update(float elapsed_time);	
