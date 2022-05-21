@@ -23,8 +23,8 @@ bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = fals
 
 bool meshSwap = false;
 int currMeshIdx = 0;
-vector<string> meshnames;
-string currentMesh = "data/editor/barn.obj";
+vector<string> meshnames, texnames;
+string currentMesh = "data/editor/barn.obj", currentTex = "data/editor/materials.tga";
 
 EntityMesh goblin;
 EntityMap terrain;
@@ -35,10 +35,13 @@ Texture* groundTex;
 vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 
-vector<string> get_all_files_names_within_folder(string folder)
+vector<string> get_all_files_names_within_folder(string type)
 {
 	vector<string> names;
-	LPCWSTR search_path = L"data/editor/*.obj";
+	LPCWSTR search_path = L" ";
+	if (type == ".obj") search_path = L"data/editor/*.obj";
+	else if (type == ".tga") search_path = L"data/editor/*.tga";
+	if (search_path == L" ") return names;
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = ::FindFirstFile(search_path, &fd);
 	if (hFind != INVALID_HANDLE_VALUE) {
@@ -112,7 +115,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	terrain.shader = shader;
 	sky.shader = shader;
 
-	meshnames = get_all_files_names_within_folder("data/editor");
+	meshnames = get_all_files_names_within_folder(".obj");
+	texnames = get_all_files_names_within_folder(".tga");
 	//hide the cursor
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
@@ -405,7 +409,7 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 		{
 			if (editorMode)
 			{
-				AddEntityInFront(camera, currentMesh.c_str(), "data/editor/materials.tga");
+				AddEntityInFront(camera, currentMesh.c_str(), currentTex.c_str());
 				cout << "Object added" << endl;
 			}
 		}
