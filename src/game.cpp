@@ -6,7 +6,7 @@
 #include "shader.h"
 #include "input.h"
 #include "animation.h"
-
+#include <Windows.h>
 #include <cmath>
 
 //some globals
@@ -17,10 +17,12 @@ Animation* anim = NULL;
 float angle = 0, padding = 10.0f;
 float mouse_speed = 1.0f;
 FBO* fbo = NULL;
-
 float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
-bool cameraLocked = false, yAxisCam = false, checkCol = false;
+bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false;
+
+vector<string> meshnames;
+string currentMesh = "data/editor/barn.obj";
 
 EntityMesh goblin;
 EntityMap terrain;
@@ -30,6 +32,27 @@ Mesh* groundMesh;
 Texture* groundTex;
 vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
+
+vector<string> get_all_files_names_within_folder(string folder)
+{
+	vector<string> names;
+	LPCWSTR search_path = L"data/editor/*.obj";
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = ::FindFirstFile(search_path, &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+				wstring recieve = fd.cFileName;
+				string toAdd(recieve.begin(), recieve.end());
+				names.push_back(toAdd);
+			}
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+	}
+	return names;
+}
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -74,7 +97,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	goblin.mesh = Mesh::Get("data/mago.obj");
 	terrain.mesh = Mesh::Get("data/terrain.ASE");
 	sky.mesh = Mesh::Get("data/cielo.ASE");
-	mesh = Mesh::Get("data/minihouse.obj");
+	mesh = Mesh::Get("data/editor/minihouse.obj");
 
 	groundMesh = new Mesh();
 	groundMesh->createPlane(1000);
@@ -87,7 +110,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	terrain.shader = shader;
 	sky.shader = shader;
 
-
+	meshnames = get_all_files_names_within_folder("data/editor");
 	//hide the cursor
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
@@ -269,9 +292,43 @@ void Game::update(double seconds_elapsed)
 			camera->rotate(Input::mouse_delta.y * 0.005f, camera->getLocalVector( Vector3(-1.0f,0.0f,0.0f)));
 		}
 	}
-	
+	if (editorMode)
+	{
+		if (Input::wasKeyPressed(SDL_SCANCODE_1))
+		{
+			currentMesh = "data/editor/barn.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_2)) {
+			currentMesh = "data/editor/Canopy_Beam.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_3)) {
+			currentMesh = "data/editor/Canopy_Corner.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_4)) {
+			currentMesh = "data/editor/Canopy_Full.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_5)) {
+			currentMesh = "data/editor/Canopy_Side.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_6)) {
+			currentMesh = "data/editor/minihouse.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_7)) {
+			currentMesh = "data/editor/Stone_Arch.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_8)) {
+			currentMesh = "data/editor/wall.obj";
+		}
+		if (Input::wasKeyPressed(SDL_SCANCODE_9)) {
+			currentMesh = "data/editor/Wood_Baseboard.obj";
+		}
+
+
+	}
 	//async input to move the camera around
-	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) cameraLocked = !cameraLocked;
+	else {
+		if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) cameraLocked = !cameraLocked;
+	}
 	if (cameraLocked) {
 		float planeSpeed = 50.0f * elapsed_time;
 		float rotSpeed = 90.0f * DEG2RAD * elapsed_time;
@@ -316,6 +373,17 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 			if (checkCol) cout << "Checking colisions!" << endl;
 			else cout << "Adding entities!" << endl;
 			break;
+		case SDLK_F4:
+			editorMode = !editorMode;
+			if (editorMode) {
+				cout << "Editor mode on" << endl;
+				cout << "Available meshes:" << endl;
+				for (size_t i = 0; i < meshnames.size(); i++)
+				{
+					cout << i << ") " << meshnames[i] << endl;
+				}
+			}
+
 	} 
 }
 
@@ -344,8 +412,11 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 	{
 		if (!checkCol)
 		{
-			AddEntityInFront(camera, "data/minihouse.obj", "");
-			cout << "Object added" << endl;
+			if (editorMode)
+			{
+				AddEntityInFront(camera, currentMesh.c_str(), "data/editor/materials.tga");
+				cout << "Object added" << endl;
+			}
 		}
 		else
 		{
