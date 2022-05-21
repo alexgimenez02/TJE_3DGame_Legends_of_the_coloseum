@@ -21,6 +21,8 @@ float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
 bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false;
 
+bool meshSwap = false;
+int currMeshIdx = 0;
 vector<string> meshnames;
 string currentMesh = "data/editor/barn.obj";
 
@@ -46,7 +48,7 @@ vector<string> get_all_files_names_within_folder(string folder)
 			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
 				wstring recieve = fd.cFileName;
 				string toAdd(recieve.begin(), recieve.end());
-				names.push_back(toAdd);
+				names.push_back("data/editor/"+toAdd);
 			}
 		} while (::FindNextFile(hFind, &fd));
 		::FindClose(hFind);
@@ -294,36 +296,25 @@ void Game::update(double seconds_elapsed)
 	}
 	if (editorMode)
 	{
-		if (Input::wasKeyPressed(SDL_SCANCODE_1))
+		if (Input::wasKeyPressed(SDL_SCANCODE_LEFT))
 		{
-			currentMesh = "data/editor/barn.obj";
+			currMeshIdx--;
+			meshSwap = true;
 		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_2)) {
-			currentMesh = "data/editor/Canopy_Beam.obj";
+		if (Input::wasKeyPressed(SDL_SCANCODE_RIGHT))
+		{
+			currMeshIdx++;
+			meshSwap = true;
 		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_3)) {
-			currentMesh = "data/editor/Canopy_Corner.obj";
-		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_4)) {
-			currentMesh = "data/editor/Canopy_Full.obj";
-		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_5)) {
-			currentMesh = "data/editor/Canopy_Side.obj";
-		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_6)) {
-			currentMesh = "data/editor/minihouse.obj";
-		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_7)) {
-			currentMesh = "data/editor/Stone_Arch.obj";
-		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_8)) {
-			currentMesh = "data/editor/wall.obj";
-		}
-		if (Input::wasKeyPressed(SDL_SCANCODE_9)) {
-			currentMesh = "data/editor/Wood_Baseboard.obj";
-		}
+		if (currMeshIdx < 0) currMeshIdx = meshnames.size() - 1;
+		if (currMeshIdx > meshnames.size() - 1) currMeshIdx = 0;
 
-
+		if (meshSwap)
+		{
+			cout << "Current mesh selected: " << meshnames[currMeshIdx] << endl;
+			meshSwap = false;
+		}
+		currentMesh = meshnames[currMeshIdx];
 	}
 	//async input to move the camera around
 	else {
@@ -343,10 +334,10 @@ void Game::update(double seconds_elapsed)
 	else {
 
 		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
-		if (Input::isKeyPressed(SDL_SCANCODE_W) || Input::isKeyPressed(SDL_SCANCODE_UP)) camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S) || Input::isKeyPressed(SDL_SCANCODE_DOWN)) camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A) || Input::isKeyPressed(SDL_SCANCODE_LEFT)) camera->move(Vector3(1.0f, 0.0f, 0.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_D) || Input::isKeyPressed(SDL_SCANCODE_RIGHT)) camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_W)) camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_S)) camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) camera->move(Vector3(1.0f, 0.0f, 0.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
 
 
 	}
