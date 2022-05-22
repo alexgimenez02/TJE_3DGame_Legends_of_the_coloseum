@@ -36,6 +36,7 @@ Texture* groundTex;
 vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 
+EntityMesh* SelectedEntity;
 
 vector<string> get_all_files_names_within_folder(bool isMesh)
 {
@@ -160,17 +161,24 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//upload uniforms
 	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
 	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
-	a_shader->setUniform("u_texture", tex, 0);
+	if (tex != NULL) {
+		a_shader->setUniform("u_texture", tex, 0);
+	}
+	
 	a_shader->setUniform("u_time", time);
-	a_shader->setUniform("u_tex_tiling", 1.0f);
 
-	shader->setUniform("u_model", model);
+	//a_shader->setUniform("u_tex_tiling", 1.0f);
+
+	a_shader->setUniform("u_model", model);
 	//a_mesh->renderBounding(model);
 	a_mesh->render(GL_TRIANGLES);
 
 	//disable shader
 	a_shader->disable();
 
+	if (!cameraLocked) {
+		a_mesh->renderBounding(model);
+	}
 }
 void RenderPlane(float tiling){
 	if (shader)
@@ -334,11 +342,21 @@ void CheckCol(Camera* cam)
 		Vector3 normal;
 		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
 		{
+			SelectedEntity = entity;
 			cout << "col" << endl;
 			break;
 		} 
 	}
 }
+
+void RotateSelected(float angleDegrees)
+{
+	if (SelectedEntity == NULL) {
+		return;
+	}
+	SelectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
+}
+
 void Game::update(double seconds_elapsed)
 {
 	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
@@ -462,6 +480,8 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 					cout << i << ") " << meshnames[i] << endl;
 				}
 			}
+		case SDLK_KP_PLUS: RotateSelected(10.0f); break;
+		case SDLK_KP_MINUS: RotateSelected(-10.0f); break;
 
 	} 
 }
