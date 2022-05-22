@@ -27,6 +27,7 @@ vector<string> meshnames, texnames;
 string currentMesh = "data/editor/barn.obj", currentTex = "data/editor/materials.tga";
 
 EntityMesh goblin;
+EntityMesh preview;
 EntityMap terrain;
 EntityMap sky;
 
@@ -35,12 +36,36 @@ Texture* groundTex;
 vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 
-vector<string> get_all_files_names_within_folder(string type)
+
+vector<string> get_all_files_names_within_folder(bool isMesh)
 {
 	vector<string> names;
 	LPCWSTR search_path = L" ";
-	if (type == ".obj") search_path = L"data/editor/*.obj";
-	else if (type == ".tga") search_path = L"data/editor/*.tga";
+	if (isMesh) search_path = L"data/editor/*.obj";
+	else
+	{
+		LPCWSTR paths[] = { L"data/editor/*.tga" , L"data/editor/*.png", L"data/editor/*.jpg" };
+		for (size_t i = 0; i < 3; i++)
+		{
+			search_path = paths[i];
+			WIN32_FIND_DATA fd;
+			HANDLE hFind = ::FindFirstFile(search_path, &fd);
+			if (hFind != INVALID_HANDLE_VALUE) {
+				do {
+					// read all (real) files in current folder
+					// , delete '!' read other 2 default folder . and ..
+					if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+						wstring recieve = fd.cFileName;
+						string toAdd(recieve.begin(), recieve.end());
+						names.push_back("data/editor/" + toAdd);
+					}
+				} while (::FindNextFile(hFind, &fd));
+				::FindClose(hFind);
+			}
+
+		}
+		return names;
+	}
 	if (search_path == L" ") return names;
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = ::FindFirstFile(search_path, &fd);
@@ -115,9 +140,13 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	terrain.shader = shader;
 	sky.shader = shader;
 
-	meshnames = get_all_files_names_within_folder(".obj");
-	texnames = get_all_files_names_within_folder(".tga");
+	meshnames = get_all_files_names_within_folder(true);
+	texnames = get_all_files_names_within_folder(false);
+	preview.mesh = Mesh::Get(currentMesh.c_str());
+	preview.texture = Texture::Get(currentTex.c_str());
+
 	//hide the cursor
+
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
@@ -136,6 +165,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	a_shader->setUniform("u_tex_tiling", 1.0f);
 
 	shader->setUniform("u_model", model);
+	//a_mesh->renderBounding(model);
 	a_mesh->render(GL_TRIANGLES);
 
 	//disable shader
@@ -166,6 +196,7 @@ void RenderPlane(float tiling){
 				m.setTranslation(size.x * i, 0.0f, size.z * j);
 				shader->setUniform("u_model", m);
 				groundMesh->render(GL_TRIANGLES);
+				
 			}
 
 		}
@@ -177,6 +208,32 @@ void RenderPlane(float tiling){
 		shader->disable();
 	}
 }
+void drawPreview(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam)
+{
+	shader->enable();
+	float scale = 0.5;
+	Matrix44 projection_matrix;
+	projection_matrix.ortho(0, Game::instance->window_width / scale, Game::instance->window_height / scale, 0, -1, 1);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadMatrixf(Matrix44().m);
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadMatrixf(projection_matrix.m);
+
+	a_mesh->render(GL_TRIANGLES);
+
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	shader->disable();
+}
 //what to do when the image has to be draw
 void Game::render(void)
 {
@@ -186,17 +243,23 @@ void Game::render(void)
 	// Clear the window and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	goblin.model.rotate(goblin.yaw * DEG2RAD, Vector3(0, 1, 0));
 	//set the camera as default
 	if (cameraLocked) {
-
+		Matrix44 camModel = goblin.model;
+		camModel.rotate(goblin.pitch * DEG2RAD, Vector3(1, 0, 0));
 		Vector3 eye = goblin.model * Vector3(0.1f, 7.0f, 2.25f);
 		Vector3 center = camera->center;
 		if(!yAxisCam)
-			center = goblin.model * Vector3(0.0f, 5.0f, 8.25f);
-		Vector3 up = goblin.model.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
+			center = eye + camModel.rotateVector(Vector3(0,0,1));
+		Vector3 up = camModel.rotateVector(Vector3(0,1,0));
 		camera->enable();
 		camera->lookAt(eye, center, up);
+		float scale = 5;
+		int half_width = window_width / 2;
+		int half_heigth = window_height / 2;
 
+		drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
 	}
 
 	//set flags
@@ -209,6 +272,10 @@ void Game::render(void)
 	//m.scale(50.0f, 50.0f, 50.0f);
 	Camera* cam = Game::instance->camera;
 	glDisable(GL_DEPTH_TEST);
+	if (editorMode)
+	{
+		//drawPreview(preview.model, preview.mesh, preview.texture, shader, cam);
+	}
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
 	if (!meshes.empty())
@@ -218,7 +285,7 @@ void Game::render(void)
 			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
 	}
-	RenderMesh(goblin.model,goblin.mesh,goblin.texture,shader,cam);
+	//RenderMesh(goblin.model,goblin.mesh,goblin.texture,shader,cam);
 	RenderPlane(60.0f);
 
 	//Draw the floor grid
@@ -226,8 +293,8 @@ void Game::render(void)
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
-
 	//swap between front buffer and back buffer
+	
 	SDL_GL_SwapWindow(this->window);
 }
 //Adding entities
@@ -284,13 +351,17 @@ void Game::update(double seconds_elapsed)
 	{
 		if (cameraLocked)
 		{
-			
-			goblin.model.rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f, 1.0f, 0.0f));
-			if (Input::mouse_delta.y != 0)
+			goblin.pitch += Input::mouse_delta.y * 5.0f * elapsed_time;
+			//Check limits
 			{
-				yAxisCam = true;
-				camera->rotate(Input::mouse_delta.y * 0.005f, camera->getLocalVector( Vector3(-1.0f,0.0f,0.0f)));
+				goblin.pitch = goblin.pitch < -90 ? -90 : goblin.pitch;
+				goblin.pitch = goblin.pitch > 90 ? 90 : goblin.pitch;
 			}
+			goblin.yaw = -Input::mouse_delta.x * 5.0f * elapsed_time;
+			SDL_ShowCursor(false);
+			Input::centerMouse();
+			//Mostrar crosshair
+			
 						
 		}
 		else {
@@ -316,9 +387,24 @@ void Game::update(double seconds_elapsed)
 		if (meshSwap)
 		{
 			cout << "Current mesh selected: " << meshnames[currMeshIdx] << endl;
+			
 			meshSwap = false;
+			currentMesh = meshnames[currMeshIdx];
+			string delimiter = ".";
+			for (size_t i = 0; i < texnames.size(); i++)
+			{
+				if (texnames[i] == currentMesh.substr(0, currentMesh.find(delimiter)) + ".tga" || texnames[i] == currentMesh.substr(0, currentMesh.find(delimiter)) + ".png" || texnames[i] == currentMesh.substr(0, currentMesh.find(delimiter)) + ".jpg")
+				{
+					currentTex = texnames[i];
+					break;
+				}
+				if (i == texnames.size() - 1)
+				{
+					currentTex = "data/editor/materials.tga";
+				}
+			}
+			cout << "Current texture selected: " << currentTex << endl;
 		}
-		currentMesh = meshnames[currMeshIdx];
 	}
 	//async input to move the camera around
 	else {
@@ -326,14 +412,12 @@ void Game::update(double seconds_elapsed)
 	}
 	if (cameraLocked) {
 		float planeSpeed = 50.0f * elapsed_time;
-		float rotSpeed = 90.0f * DEG2RAD * elapsed_time;
+		float rotSpeed = 500.0f * elapsed_time;
 
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) goblin.model.translate(0.0f, 0.0f, planeSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) goblin.model.translate(0.0f, 0.0f, -planeSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.model.rotate(-rotSpeed, Vector3(0.0f, 1.0f, 0.0f));
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.model.rotate(rotSpeed, Vector3(0.0f, 1.0f, 0.0f));
-		if (Input::isKeyPressed(SDL_SCANCODE_Q)) goblin.model.rotate(rotSpeed, Vector3(0.0f, 0.0f, 1.0f));
-		if (Input::isKeyPressed(SDL_SCANCODE_E)) goblin.model.rotate(-rotSpeed, Vector3(0.0f, 0.0f, 1.0f));
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
 	}
 	else {
 

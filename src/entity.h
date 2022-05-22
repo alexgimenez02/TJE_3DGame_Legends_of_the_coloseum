@@ -48,6 +48,8 @@ public:
 	Texture* texture;
 	Shader* shader;
 	Vector3 scale;
+	float pitch;
+	float yaw;
 
 	EntityMesh(){};
 	~EntityMesh(){};
