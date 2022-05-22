@@ -35,8 +35,14 @@ Mesh* groundMesh;
 Texture* groundTex;
 vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
-
 EntityMesh* SelectedEntity;
+
+struct sPlayer {
+	Vector3 pos;
+	float yaw;
+};
+
+sPlayer player;
 
 vector<string> get_all_files_names_within_folder(bool isMesh)
 {
@@ -176,9 +182,9 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	if (!cameraLocked) {
-		a_mesh->renderBounding(model);
-	}
+	a_mesh->renderBounding(model);
+
+	
 }
 void RenderPlane(float tiling){
 	if (shader)
@@ -252,6 +258,7 @@ void Game::render(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	goblin.model.rotate(goblin.yaw * DEG2RAD, Vector3(0, 1, 0));
+	
 	//set the camera as default
 	if (cameraLocked) {
 		Matrix44 camModel = goblin.model;
@@ -263,11 +270,7 @@ void Game::render(void)
 		Vector3 up = camModel.rotateVector(Vector3(0,1,0));
 		camera->enable();
 		camera->lookAt(eye, center, up);
-		float scale = 5;
-		int half_width = window_width / 2;
-		int half_heigth = window_height / 2;
-
-		drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
+		
 	}
 
 	//set flags
@@ -284,6 +287,11 @@ void Game::render(void)
 	{
 		//drawPreview(preview.model, preview.mesh, preview.texture, shader, cam);
 	}
+
+	Matrix44 playerModel;
+
+	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
+	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
 	if (!meshes.empty())
@@ -293,16 +301,26 @@ void Game::render(void)
 			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
 	}
-	//RenderMesh(goblin.model,goblin.mesh,goblin.texture,shader,cam);
+	
 	RenderPlane(60.0f);
 
 	//Draw the floor grid
 	//drawGrid();
+	//RenderMesh(goblin.model, goblin.mesh, goblin.texture, shader, cam);
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	//swap between front buffer and back buffer
 	
+	
+	//QUITAR DE AQUI Y METER EN OTRO LADO IMPORTANTEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+	float scale = 5;
+	int half_width = window_width / 2;
+	int half_heigth = window_height / 2;
+	drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
+	//--------------------------------------------------------------------------------------
+	
+
 	SDL_GL_SwapWindow(this->window);
 }
 //Adding entities
@@ -369,6 +387,8 @@ void Game::update(double seconds_elapsed)
 	{
 		if (cameraLocked)
 		{
+			
+			
 			goblin.pitch += Input::mouse_delta.y * 5.0f * elapsed_time;
 			//Check limits
 			{
@@ -380,7 +400,6 @@ void Game::update(double seconds_elapsed)
 			Input::centerMouse();
 			//Mostrar crosshair
 			
-						
 		}
 		else {
 			camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f,-1.0f,0.0f));
@@ -429,13 +448,55 @@ void Game::update(double seconds_elapsed)
 		if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) cameraLocked = !cameraLocked;
 	}
 	if (cameraLocked) {
-		float planeSpeed = 50.0f * elapsed_time;
+		float playerSpeed = 5.0f * elapsed_time;
 		float rotSpeed = 500.0f * elapsed_time;
-
+		Matrix44 playerRotation;
+		playerRotation.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
+		Vector3 playerVel;
+		Vector3 forward = playerRotation.rotateVector(Vector3(0,0,-1));
+		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+		
+		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
+		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
+		//if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
+		//if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
+		player.pos = player.pos + playerVel;
+		/*
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) goblin.model.translate(0.0f, 0.0f, planeSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) goblin.model.translate(0.0f, 0.0f, -planeSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
+		//if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
+		//if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.model.translate(planeSpeed, 0.0f, 0.0f);
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.model.translate(-planeSpeed, 0.0f, 0.0f);
+		*/
+		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
+		Vector3 nexPos = player.pos + playerVel;
+
+		Vector3 character_center = nexPos + Vector3(0, 1, 0);
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			EntityMesh* currentEntity = meshes[i];
+			//para cada objecto de la escena...
+			Vector3 coll;
+			Vector3 collnorm;
+			//comprobamos si colisiona el objeto con la esfera (radio 3)
+			if (!currentEntity->mesh->testSphereCollision(currentEntity->model, character_center, 0.5f, coll, collnorm))
+				continue; //si no colisiona, pasamos al siguiente objeto
+
+			//si la esfera está colisionando muevela a su posicion anterior alejandola del objeto
+			Vector3 push_away = normalize(coll - character_center) * elapsed_time;
+			nexPos = player.pos - push_away; //move to previous pos but a little bit further
+
+			//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
+			nexPos.y = 0;
+
+			//reflejamos el vector velocidad para que de la sensacion de que rebota en la pared
+			//velocity = reflect(velocity, collnorm) * 0.95;
+		}
+		player.pos = nexPos;
+		goblin.model.translate(player.pos.x, player.pos.y, player.pos.z);
 	}
 	else {
 
