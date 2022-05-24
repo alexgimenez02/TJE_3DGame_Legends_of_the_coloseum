@@ -43,6 +43,7 @@ public:
 class EntityMesh : Entity
 {
 public:
+	string name;
 	Mesh* mesh;
 	Matrix44 model;
 	Texture* texture;

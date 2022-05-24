@@ -121,6 +121,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	
 	goblin.texture = new Texture();
 	goblin.texture->load("data/mago.png");
+	goblin.name = "Player";
 	//Terrain
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
@@ -136,6 +137,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	terrain.mesh = Mesh::Get("data/terrain.ASE");
 	sky.mesh = Mesh::Get("data/cielo.ASE");
 	mesh = Mesh::Get("data/editor/minihouse.obj");
+	goblin.mesh->name = goblin.name;
 
 	groundMesh = new Mesh();
 	groundMesh->createPlane(1000);
@@ -155,6 +157,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	//hide the cursor
 
+	//goblin.mesh->createCollisionModel();
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
@@ -183,7 +186,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	//a_mesh->renderBounding(model);
+	if(Camera::current)	a_mesh->renderBounding(model);
 
 	
 }
@@ -298,8 +301,8 @@ void Game::render(void)
 			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
 	}
+	RenderMesh(goblin.model, goblin.mesh, goblin.texture, shader, cam);	
 	
-	RenderMesh(goblin.model, goblin.mesh, goblin.texture, shader, cam);
 	RenderPlane(60.0f);
 
 	//Draw the floor grid
@@ -317,7 +320,7 @@ void Game::render(void)
 	drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
 	//--------------------------------------------------------------------------------------
 	
-
+	Camera::current = cam;
 	SDL_GL_SwapWindow(this->window);
 }
 //Adding entities
@@ -336,6 +339,7 @@ void AddEntityInFront(Camera* cam, const char* meshName, const char* texName)
 	EntityMesh* entity = new EntityMesh();
 	entity->model = model;
 	entity->mesh = Mesh::Get(meshName); 
+	entity->mesh->name = meshName;
 	if (texName != "")
 		entity->texture = Texture::Get(texName);
 	else
@@ -473,7 +477,7 @@ void Game::update(double seconds_elapsed)
 		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
 		Vector3 nexPos = playerVel;
 
-		Vector3 character_center = nexPos + Vector3(0, 1, 0);
+		Vector3 character_center = nexPos + Vector3(0, 3, 0);
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			EntityMesh* currentEntity = meshes[i];
@@ -481,7 +485,7 @@ void Game::update(double seconds_elapsed)
 			Vector3 coll;
 			Vector3 collnorm;
 			//comprobamos si colisiona el objeto con la esfera (radio 3)
-			if (!currentEntity->mesh->testSphereCollision(currentEntity->model, character_center, 0.5f, coll, collnorm))
+			if (currentEntity->mesh->testSphereCollision(currentEntity->model, character_center, 1, coll, collnorm) == false)
 				continue; //si no colisiona, pasamos al siguiente objeto
 
 			//si la esfera está colisionando muevela a su posicion anterior alejandola del objeto
