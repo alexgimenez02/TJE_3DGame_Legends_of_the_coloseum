@@ -7,6 +7,7 @@
 #include "input.h"
 #include "animation.h"
 #include <Windows.h>
+#include "extra/coldet/coldet.h"
 #include <cmath>
 
 //some globals
@@ -203,7 +204,6 @@ void RenderPlane(float tiling){
 		shader->setUniform("u_time", time);
 		shader->setUniform("u_tex_tiling", tiling);
 
-		//float padding = 10000.0f;
 		Matrix44 m;
 		for (size_t i = 0; i < 20; i++)
 		{
@@ -213,14 +213,12 @@ void RenderPlane(float tiling){
 				Vector3 size = groundMesh->box.halfsize * 2;
 				m.setTranslation(size.x * i, 0.0f, size.z * j);
 				shader->setUniform("u_model", m);
+				//do the draw call
 				groundMesh->render(GL_TRIANGLES);
 				
 			}
 
 		}
-		
-
-		//do the draw call
 
 		//disable shader
 		shader->disable();
@@ -232,23 +230,14 @@ void drawPreview(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 	float scale = 0.5;
 	Matrix44 projection_matrix;
 	projection_matrix.ortho(0, Game::instance->window_width / scale, Game::instance->window_height / scale, 0, -1, 1);
-	glDisable(GL_DEPTH_TEST);
+	
 	glDisable(GL_CULL_FACE);
 
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadMatrixf(Matrix44().m);
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
 	glLoadMatrixf(projection_matrix.m);
 
 	a_mesh->render(GL_TRIANGLES);
 
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
-
-	glEnable(GL_DEPTH_TEST);
+	
 	glEnable(GL_CULL_FACE);
 	shader->disable();
 }
@@ -262,6 +251,7 @@ void Game::render(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	goblin.model.translate(player.pos.x, player.pos.y, player.pos.z);
+	player.pos = Vector3(0, 0, 0);
 	goblin.model.rotate(goblin.yaw * DEG2RAD, Vector3(0, 1, 0));
 	
 	//set the camera as default
@@ -290,7 +280,8 @@ void Game::render(void)
 	glDisable(GL_DEPTH_TEST);
 	if (editorMode)
 	{
-		//drawPreview(preview.model, preview.mesh, preview.texture, shader, cam);
+		Matrix44 model;
+		RenderMesh(model, Mesh::Get(currentMesh.c_str()), Texture::Get(currentTex.c_str()), shader, cam);
 	}
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
@@ -334,12 +325,12 @@ void AddEntityInFront(Camera* cam, const char* meshName, const char* texName)
 	Vector3 spawnPos = RayPlaneCollision(Vector3(), Vector3(0, 1, 0), rayOrigin, dir);
 	Matrix44 model;
 	model.translate(spawnPos.x, spawnPos.y, spawnPos.z);
-	model.scale(3.0f, 3.0f, 3.0f);
+	model.scale(5.0f, 5.0f, 5.0f);
 
 	EntityMesh* entity = new EntityMesh();
 	entity->model = model;
 	entity->mesh = Mesh::Get(meshName); 
-	entity->mesh->name = meshName;
+	entity->name = meshName;
 	if (texName != "")
 		entity->texture = Texture::Get(texName);
 	else
@@ -376,6 +367,41 @@ void RotateSelected(float angleDegrees)
 	SelectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
 }
 
+bool checkColision(EntityMesh* staticEntity, Vector3 dir, Vector3 rayOrigin, Vector3 coll)
+{
+	if (!staticEntity->mesh->createCollisionModel(true)) return false;
+	CollisionModel3D* collModel = (CollisionModel3D*)staticEntity->mesh->collision_model;
+	//primero especificamos dónde está la mesh pasandole la matriz que contiene la transformada
+	collModel->setTransform(staticEntity->model.m);
+
+	//Testeamos la colisión, devuelve false si no ha colisionado
+	//Ojo, ray_direction tiene que estar normalizado, o sino usar 1 como MAX_DIST
+	//Es importante recordar que el tercer valor sirve para determinar si queremos saber la colisión más
+	// cercana al origen del rayo o nos conformamos con saber si colisiona. MAX_DIST es la distancia
+	// máxima hasta donde queremos testear. 
+	float distance = 0.5f;
+
+	Vector3 pos;
+	Vector3 normal;
+	Vector3 collnorm;
+	if (!collModel->rayCollision(rayOrigin.v, dir.v, true, 0, distance))
+		return false;
+
+
+	//para saber el punto de colisión usamos:
+	collModel->getCollisionPoint(coll.v, true);
+	//el segundo parametro es para especificar si queremos el punto de colision en coordenadas de objeto (locales de la mesh) o en coordenadas de mundo.
+
+	//a veces podemos querer saber no solo el punto de colision, sino tambien el triangulo con el que ha colisionado, en tal caso usamos:
+
+	//siendo t1 un array para 9 floats donde se almacenara las componentes del triangulo (t2 es solo para testear colision entre dos meshes).
+
+	float t1[9], t2[9];
+	if (!collModel->getCollidingTriangles(t1, t2, false))
+		return false;
+
+	return true;
+}
 void Game::update(double seconds_elapsed)
 {
 	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
@@ -452,7 +478,7 @@ void Game::update(double seconds_elapsed)
 		float playerSpeed = 25.0f * elapsed_time;
 		//float rotSpeed = 500.0f * elapsed_time;
 		Matrix44 playerRotation;
-		//playerRotation.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
+		playerRotation.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
 		Vector3 playerVel;
 		Vector3 forward = playerRotation.rotateVector(Vector3(0,0,-1));
 		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
@@ -465,41 +491,44 @@ void Game::update(double seconds_elapsed)
 		
 		//if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
 		//if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
-		player.pos = playerVel;
 		/*
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) goblin.model.translate(0.0f, 0.0f, planeSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) goblin.model.translate(0.0f, 0.0f, -planeSpeed);
-		//if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
-		//if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
 		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.model.translate(planeSpeed, 0.0f, 0.0f);
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.model.translate(-planeSpeed, 0.0f, 0.0f);
 		*/
 		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
-		Vector3 nexPos = playerVel;
+		Vector3 nexPos = player.pos + playerVel;
 
-		Vector3 character_center = nexPos + Vector3(0, 3, 0);
+		Vector3 character_center = nexPos + Vector3(0, 5, 0);
+		Game* g = Game::instance;
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			EntityMesh* currentEntity = meshes[i];
-			//para cada objecto de la escena...
+			EntityMesh* entity = meshes[i];
+			Vector3 dir = g->camera->getRayDirection(Input::mouse_position.x, Input::mouse_position.y, g->window_width, g->window_height);
+			Vector3 rayOrigin = g->camera->eye;
 			Vector3 coll;
-			Vector3 collnorm;
-			//comprobamos si colisiona el objeto con la esfera (radio 3)
-			if (currentEntity->mesh->testSphereCollision(currentEntity->model, character_center, 1, coll, collnorm) == false)
-				continue; //si no colisiona, pasamos al siguiente objeto
+			Vector3 normalDir = Vector3(1,1,-(dir.x + dir.y)/ dir.z);
+			
+			
+			if (checkColision(entity, dir, rayOrigin, coll) || checkColision(entity, dir * -1, rayOrigin, coll) || checkColision(entity, normalDir, rayOrigin, coll) || checkColision(entity, normalDir * -1, rayOrigin, coll))
+			{
+				cout << "Colision detected!" << endl;
 
-			//si la esfera está colisionando muevela a su posicion anterior alejandola del objeto
-			Vector3 push_away = normalize(coll - character_center) * elapsed_time;
-			nexPos = player.pos - push_away; //move to previous pos but a little bit further
+				Vector3 push_away = normalize(coll - character_center) * elapsed_time;
+				nexPos = player.pos - (push_away + playerVel); //move to previous pos but a little bit further
 
-			//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
-			nexPos.y = 0;
-
+				nexPos.y = 0;
+			}
+			
 			//reflejamos el vector velocidad para que de la sensacion de que rebota en la pared
 			//velocity = reflect(velocity, collnorm) * 0.95;
 		}
 		player.pos = nexPos;
-		//goblin.model.translate(player.pos.x, player.pos.y, player.pos.z);
+
+		
 	}
 	else {
 
@@ -544,9 +573,17 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 					cout << i << ") " << meshnames[i] << endl;
 				}
 			}
+			break;
+		case SDLK_F5:
+			cout << "Static meshes in scene" << endl;
+			for (size_t i = 0; i < meshes.size(); i++)
+			{
+				cout << i << ") Mesh: " << meshes[i]->name.c_str() << endl;
+			}
+			break;
 		case SDLK_KP_PLUS: RotateSelected(10.0f); break;
 		case SDLK_KP_MINUS: RotateSelected(-10.0f); break;
-
+		
 	} 
 }
 
