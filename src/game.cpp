@@ -21,6 +21,7 @@ float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
 bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false;
 
+
 bool meshSwap = false;
 int currMeshIdx = 0;
 vector<string> meshnames, texnames;
@@ -182,7 +183,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	a_mesh->renderBounding(model);
+	//a_mesh->renderBounding(model);
 
 	
 }
@@ -257,6 +258,7 @@ void Game::render(void)
 	// Clear the window and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	goblin.model.translate(player.pos.x, player.pos.y, player.pos.z);
 	goblin.model.rotate(goblin.yaw * DEG2RAD, Vector3(0, 1, 0));
 	
 	//set the camera as default
@@ -287,11 +289,6 @@ void Game::render(void)
 	{
 		//drawPreview(preview.model, preview.mesh, preview.texture, shader, cam);
 	}
-
-	Matrix44 playerModel;
-
-	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
-	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
 	if (!meshes.empty())
@@ -302,11 +299,11 @@ void Game::render(void)
 		}
 	}
 	
+	RenderMesh(goblin.model, goblin.mesh, goblin.texture, shader, cam);
 	RenderPlane(60.0f);
 
 	//Draw the floor grid
 	//drawGrid();
-	//RenderMesh(goblin.model, goblin.mesh, goblin.texture, shader, cam);
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
@@ -448,21 +445,23 @@ void Game::update(double seconds_elapsed)
 		if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) cameraLocked = !cameraLocked;
 	}
 	if (cameraLocked) {
-		float playerSpeed = 5.0f * elapsed_time;
-		float rotSpeed = 500.0f * elapsed_time;
+		float playerSpeed = 25.0f * elapsed_time;
+		//float rotSpeed = 500.0f * elapsed_time;
 		Matrix44 playerRotation;
-		playerRotation.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
+		//playerRotation.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
 		Vector3 playerVel;
 		Vector3 forward = playerRotation.rotateVector(Vector3(0,0,-1));
 		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
 		
+		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
+		
 		//if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
 		//if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
-		player.pos = player.pos + playerVel;
+		player.pos = playerVel;
 		/*
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) goblin.model.translate(0.0f, 0.0f, planeSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) goblin.model.translate(0.0f, 0.0f, -planeSpeed);
@@ -472,7 +471,7 @@ void Game::update(double seconds_elapsed)
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.model.translate(-planeSpeed, 0.0f, 0.0f);
 		*/
 		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
-		Vector3 nexPos = player.pos + playerVel;
+		Vector3 nexPos = playerVel;
 
 		Vector3 character_center = nexPos + Vector3(0, 1, 0);
 		for (size_t i = 0; i < meshes.size(); i++)
@@ -496,7 +495,7 @@ void Game::update(double seconds_elapsed)
 			//velocity = reflect(velocity, collnorm) * 0.95;
 		}
 		player.pos = nexPos;
-		goblin.model.translate(player.pos.x, player.pos.y, player.pos.z);
+		//goblin.model.translate(player.pos.x, player.pos.y, player.pos.z);
 	}
 	else {
 
