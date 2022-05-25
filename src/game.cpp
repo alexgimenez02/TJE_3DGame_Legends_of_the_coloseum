@@ -325,7 +325,7 @@ void AddEntityInFront(Camera* cam, const char* meshName, const char* texName)
 	Vector3 spawnPos = RayPlaneCollision(Vector3(), Vector3(0, 1, 0), rayOrigin, dir);
 	Matrix44 model;
 	model.translate(spawnPos.x, spawnPos.y, spawnPos.z);
-	model.scale(5.0f, 5.0f, 5.0f);
+	//model.scale(5.0f, 5.0f, 5.0f);
 
 	EntityMesh* entity = new EntityMesh();
 	entity->model = model;
@@ -367,8 +367,10 @@ void RotateSelected(float angleDegrees)
 	SelectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
 }
 
-bool checkColision(EntityMesh* staticEntity, Vector3 dir, Vector3 rayOrigin, Vector3 coll)
+bool checkColision(EntityMesh* staticEntity, Vector3 player_pos, Vector3 nexPos,Vector3 character_center, Vector3 coll, float elapsed_time)
 {
+
+	/*
 	if (!staticEntity->mesh->createCollisionModel(true)) return false;
 	CollisionModel3D* collModel = (CollisionModel3D*)staticEntity->mesh->collision_model;
 	//primero especificamos dónde está la mesh pasandole la matriz que contiene la transformada
@@ -401,6 +403,22 @@ bool checkColision(EntityMesh* staticEntity, Vector3 dir, Vector3 rayOrigin, Vec
 		return false;
 
 	return true;
+	*/
+	//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
+
+	//para cada objecto de la escena...
+	Vector3 collnorm;
+	//comprobamos si colisiona el objeto con la esfera (radio 3)
+	if (!staticEntity->mesh->testSphereCollision(staticEntity->model, character_center, 5, coll, collnorm))
+		return false; //si no colisiona, pasamos al siguiente objeto
+
+	//si la esfera está colisionando muevela a su posicion anterior alejandola del objeto
+	
+
+	//reflejamos el vector velocidad para que de la sensacion de que rebota en la pared
+	//velocity = reflect(velocity, collnorm) * 0.95;
+	return true;
+
 }
 void Game::update(double seconds_elapsed)
 {
@@ -502,26 +520,35 @@ void Game::update(double seconds_elapsed)
 		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
 		Vector3 nexPos = player.pos + playerVel;
 
-		Vector3 character_center = nexPos + Vector3(0, 5, 0);
+		Vector3 character_center = nexPos + Vector3(0, 3.5f, 0);
 		Game* g = Game::instance;
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			EntityMesh* entity = meshes[i];
-			Vector3 dir = g->camera->getRayDirection(Input::mouse_position.x, Input::mouse_position.y, g->window_width, g->window_height);
-			Vector3 rayOrigin = g->camera->eye;
+			//Vector3 dir = g->camera->getRayDirection(Input::mouse_position.x, Input::mouse_position.y, g->window_width, g->window_height);
+			//Vector3 rayOrigin = g->camera->eye;
 			Vector3 coll;
-			Vector3 normalDir = Vector3(1,1,-(dir.x + dir.y)/ dir.z);
+			//Vector3 normalDir = Vector3(1,1,-(dir.x + dir.y)/ dir.z);
 			
-			
-			if (checkColision(entity, dir, rayOrigin, coll) || checkColision(entity, dir * -1, rayOrigin, coll) || checkColision(entity, normalDir, rayOrigin, coll) || checkColision(entity, normalDir * -1, rayOrigin, coll))
+			if (checkColision(entity,player.pos,nexPos,character_center,coll,elapsed_time))
 			{
 				cout << "Colision detected!" << endl;
+				Vector3 push_away = normalize(coll - character_center) * elapsed_time;
+				nexPos = player.pos - push_away; //move to previous pos but a little bit further
+
+				//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
+				nexPos.y = 0;
+			}
+
+			/*
+			if (checkColision(entity, dir, rayOrigin, coll) || checkColision(entity, dir * -1, rayOrigin, coll) || checkColision(entity, normalDir, rayOrigin, coll) || checkColision(entity, normalDir * -1, rayOrigin, coll))
+			{
 
 				Vector3 push_away = normalize(coll - character_center) * elapsed_time;
 				nexPos = player.pos - (push_away + playerVel); //move to previous pos but a little bit further
 
 				nexPos.y = 0;
-			}
+			}*/
 			
 			//reflejamos el vector velocidad para que de la sensacion de que rebota en la pared
 			//velocity = reflect(velocity, collnorm) * 0.95;
