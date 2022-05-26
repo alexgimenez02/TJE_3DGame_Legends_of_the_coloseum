@@ -49,6 +49,7 @@ public:
 	Texture* texture;
 	Shader* shader;
 	Vector3 scale;
+	Vector3 pos;
 	float pitch;
 	float yaw;
 

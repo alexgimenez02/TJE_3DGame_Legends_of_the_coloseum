@@ -1,0 +1,194 @@
+# Blender MTL File: 'None'
+# Material Count: 16
+
+newmtl DungeonCrawler_Character_002_0_L_Hand_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-0-L_Hand-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-0-L_Hand-11.png
+
+newmtl DungeonCrawler_Character_002_10_Spine1_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-10-Spine1-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-10-Spine1-11.png
+
+newmtl DungeonCrawler_Character_002_11_Spine2_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-11-Spine2-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-11-Spine2-11.png
+
+newmtl DungeonCrawler_Character_002_12_Spine3_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-12-Spine3-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-12-Spine3-11.png
+
+newmtl DungeonCrawler_Character_002_13_R_Arm_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-13-R_Arm-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-13-R_Arm-11.png
+
+newmtl DungeonCrawler_Character_002_14_R_ForeArm_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-14-R_ForeArm-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-14-R_ForeArm-11.png
+
+newmtl DungeonCrawler_Character_002_15_Head_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-15-Head-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-15-Head-11.png
+
+newmtl DungeonCrawler_Character_002_1_R_Hand_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-1-R_Hand-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-1-R_Hand-11.png
+
+newmtl DungeonCrawler_Character_002_2_L_Calf_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-2-L_Calf-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-2-L_Calf-11.png
+
+newmtl DungeonCrawler_Character_002_3_L_Foot_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-3-L_Foot-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-3-L_Foot-11.png
+
+newmtl DungeonCrawler_Character_002_4_L_Thigh_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-4-L_Thigh-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-4-L_Thigh-11.png
+
+newmtl DungeonCrawler_Character_002_5_L_Arm_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-5-L_Arm-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-5-L_Arm-11.png
+
+newmtl DungeonCrawler_Character_002_6_L_ForeArm_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-6-L_ForeArm-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-6-L_ForeArm-11.png
+
+newmtl DungeonCrawler_Character_002_7_R_Foot_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-7-R_Foot-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-7-R_Foot-11.png
+
+newmtl DungeonCrawler_Character_002_8_R_Calf_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-8-R_Calf-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-8-R_Calf-11.png
+
+newmtl DungeonCrawler_Character_002_9_R_Thigh_11_palette3
+Ns 20.599992
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-9-R_Thigh-11.png
+map_d D:\\TJE_2D\\TJE_3DGame\\RawExports\\Character11\\DungeonCrawler_Character_002-9-R_Thigh-11.png

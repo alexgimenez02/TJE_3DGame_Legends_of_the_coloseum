@@ -28,7 +28,7 @@ int currMeshIdx = 0;
 vector<string> meshnames, texnames;
 string currentMesh = "data/editor/barn.obj", currentTex = "data/editor/materials.tga";
 
-EntityMesh goblin;
+EntityMesh player;
 EntityMesh preview;
 EntityMap terrain;
 EntityMap sky;
@@ -39,12 +39,6 @@ vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 EntityMesh* SelectedEntity;
 
-struct sPlayer {
-	Vector3 pos;
-	float yaw;
-};
-
-sPlayer player;
 
 vector<string> get_all_files_names_within_folder(bool isMesh)
 {
@@ -120,9 +114,9 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
 	//Goblin
 	
-	goblin.texture = new Texture();
-	goblin.texture->load("data/mago.png");
-	goblin.name = "Player";
+	player.texture = new Texture();
+	player.texture->load("data/playermodels/Character.png");
+	player.name = "Player";
 	//Terrain
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
@@ -134,11 +128,11 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	tex = new Texture();
 	tex->load("data/terrain.tga");
 	// example of loading Mesh from Mesh Manager
-	goblin.mesh = Mesh::Get("data/mago.obj");
+	player.mesh = Mesh::Get("data/playermodels/Character1.obj");
 	terrain.mesh = Mesh::Get("data/terrain.ASE");
 	sky.mesh = Mesh::Get("data/cielo.ASE");
 	mesh = Mesh::Get("data/editor/minihouse.obj");
-	goblin.mesh->name = goblin.name;
+	player.mesh->name = player.name;
 
 	groundMesh = new Mesh();
 	groundMesh->createPlane(1000);
@@ -147,7 +141,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	// example of shader loading using the shaders manager
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 
-	goblin.shader = shader;
+	player.shader = shader;
 	terrain.shader = shader;
 	sky.shader = shader;
 
@@ -250,24 +244,6 @@ void Game::render(void)
 	// Clear the window and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	goblin.model.translate(player.pos.x, player.pos.y, player.pos.z);
-	player.pos = Vector3(0, 0, 0);
-	goblin.model.rotate(goblin.yaw * DEG2RAD, Vector3(0, 1, 0));
-	
-	//set the camera as default
-	if (cameraLocked) {
-		Matrix44 camModel = goblin.model;
-		camModel.rotate(goblin.pitch * DEG2RAD, Vector3(1, 0, 0));
-		Vector3 eye = goblin.model * Vector3(0.1f, 7.0f, 2.25f);
-		Vector3 center = camera->center;
-		if(!yAxisCam)
-			center = eye + camModel.rotateVector(Vector3(0,0,1));
-		Vector3 up = camModel.rotateVector(Vector3(0,1,0));
-		camera->enable();
-		camera->lookAt(eye, center, up);
-		
-	}
-
 	//set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -280,8 +256,9 @@ void Game::render(void)
 	glDisable(GL_DEPTH_TEST);
 	if (editorMode)
 	{
-		Matrix44 model;
+		/*Matrix44 model;
 		RenderMesh(model, Mesh::Get(currentMesh.c_str()), Texture::Get(currentTex.c_str()), shader, cam);
+		*/
 	}
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
@@ -292,7 +269,25 @@ void Game::render(void)
 			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
 	}
-	RenderMesh(goblin.model, goblin.mesh, goblin.texture, shader, cam);	
+
+	Matrix44 playerModel;
+	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
+	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0, 1, 0));
+	
+	//set the camera as default
+	if (cameraLocked) {
+		Matrix44 camModel = playerModel;
+		camModel.rotate(player.pitch * DEG2RAD, Vector3(1, 0, 0));
+		Vector3 eye = playerModel * Vector3(0.1f, 7.0f, 2.25f);
+		Vector3 center = camera->center;
+		if(!yAxisCam)
+			center = eye + camModel.rotateVector(Vector3(0,0,1));
+		Vector3 up = camModel.rotateVector(Vector3(0,1,0));
+		camera->enable();
+		camera->lookAt(eye, center, up);
+		
+	}
+	RenderMesh(playerModel, player.mesh, player.texture, shader, cam);	
 	
 	RenderPlane(60.0f);
 
@@ -325,18 +320,15 @@ void AddEntityInFront(Camera* cam, const char* meshName, const char* texName)
 	Vector3 spawnPos = RayPlaneCollision(Vector3(), Vector3(0, 1, 0), rayOrigin, dir);
 	Matrix44 model;
 	model.translate(spawnPos.x, spawnPos.y, spawnPos.z);
-	//model.scale(5.0f, 5.0f, 5.0f);
-
+	
 	EntityMesh* entity = new EntityMesh();
-	entity->model = model;
 	entity->mesh = Mesh::Get(meshName); 
 	entity->name = meshName;
-	if (texName != "")
-		entity->texture = Texture::Get(texName);
-	else
-		entity->texture = new Texture();
+	entity->model = model;	
+	entity->texture = Texture::Get(texName);
 	meshes.push_back(entity);
 }
+
 
 //Checking  ray colision
 void CheckCol(Camera* cam)
@@ -367,59 +359,6 @@ void RotateSelected(float angleDegrees)
 	SelectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
 }
 
-bool checkColision(EntityMesh* staticEntity, Vector3 player_pos, Vector3 nexPos,Vector3 character_center, Vector3 coll, float elapsed_time)
-{
-
-	/*
-	if (!staticEntity->mesh->createCollisionModel(true)) return false;
-	CollisionModel3D* collModel = (CollisionModel3D*)staticEntity->mesh->collision_model;
-	//primero especificamos dónde está la mesh pasandole la matriz que contiene la transformada
-	collModel->setTransform(staticEntity->model.m);
-
-	//Testeamos la colisión, devuelve false si no ha colisionado
-	//Ojo, ray_direction tiene que estar normalizado, o sino usar 1 como MAX_DIST
-	//Es importante recordar que el tercer valor sirve para determinar si queremos saber la colisión más
-	// cercana al origen del rayo o nos conformamos con saber si colisiona. MAX_DIST es la distancia
-	// máxima hasta donde queremos testear. 
-	float distance = 0.5f;
-
-	Vector3 pos;
-	Vector3 normal;
-	Vector3 collnorm;
-	if (!collModel->rayCollision(rayOrigin.v, dir.v, true, 0, distance))
-		return false;
-
-
-	//para saber el punto de colisión usamos:
-	collModel->getCollisionPoint(coll.v, true);
-	//el segundo parametro es para especificar si queremos el punto de colision en coordenadas de objeto (locales de la mesh) o en coordenadas de mundo.
-
-	//a veces podemos querer saber no solo el punto de colision, sino tambien el triangulo con el que ha colisionado, en tal caso usamos:
-
-	//siendo t1 un array para 9 floats donde se almacenara las componentes del triangulo (t2 es solo para testear colision entre dos meshes).
-
-	float t1[9], t2[9];
-	if (!collModel->getCollidingTriangles(t1, t2, false))
-		return false;
-
-	return true;
-	*/
-	//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
-
-	//para cada objecto de la escena...
-	Vector3 collnorm;
-	//comprobamos si colisiona el objeto con la esfera (radio 3)
-	if (!staticEntity->mesh->testSphereCollision(staticEntity->model, character_center, 5, coll, collnorm))
-		return false; //si no colisiona, pasamos al siguiente objeto
-
-	//si la esfera está colisionando muevela a su posicion anterior alejandola del objeto
-	
-
-	//reflejamos el vector velocidad para que de la sensacion de que rebota en la pared
-	//velocity = reflect(velocity, collnorm) * 0.95;
-	return true;
-
-}
 void Game::update(double seconds_elapsed)
 {
 	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
@@ -434,13 +373,13 @@ void Game::update(double seconds_elapsed)
 		{
 			
 			
-			goblin.pitch += Input::mouse_delta.y * 5.0f * elapsed_time;
+			player.pitch += Input::mouse_delta.y * 5.0f * elapsed_time;
 			//Check limits
 			{
-				goblin.pitch = goblin.pitch < -90 ? -90 : goblin.pitch;
-				goblin.pitch = goblin.pitch > 90 ? 90 : goblin.pitch;
+				player.pitch = player.pitch < -90 ? -90 : player.pitch;
+				player.pitch = player.pitch > 90 ? 90 : player.pitch;
 			}
-			goblin.yaw = -Input::mouse_delta.x * 5.0f * elapsed_time;
+			player.yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
 			SDL_ShowCursor(false);
 			Input::centerMouse();
 			//Mostrar crosshair
@@ -494,64 +433,39 @@ void Game::update(double seconds_elapsed)
 	}
 	if (cameraLocked) {
 		float playerSpeed = 25.0f * elapsed_time;
+		//float playerSpeed = 1.5f * elapsed_time;
 		//float rotSpeed = 500.0f * elapsed_time;
 		Matrix44 playerRotation;
 		playerRotation.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
 		Vector3 playerVel;
 		Vector3 forward = playerRotation.rotateVector(Vector3(0,0,-1));
 		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
-		
+		//player.pos = ply.model.getTranslation();
 		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
 		
-		//if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
-		//if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
-		/*
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) goblin.model.translate(0.0f, 0.0f, planeSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) goblin.model.translate(0.0f, 0.0f, -planeSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.yaw = -rotSpeed;
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.yaw = rotSpeed;
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) goblin.model.translate(planeSpeed, 0.0f, 0.0f);
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) goblin.model.translate(-planeSpeed, 0.0f, 0.0f);
-		*/
+		
 		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
 		Vector3 nexPos = player.pos + playerVel;
 
-		Vector3 character_center = nexPos + Vector3(0, 3.5f, 0);
-		Game* g = Game::instance;
+		Vector3 character_center = nexPos + Vector3(0, 4, 0);
+
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			EntityMesh* entity = meshes[i];
-			//Vector3 dir = g->camera->getRayDirection(Input::mouse_position.x, Input::mouse_position.y, g->window_width, g->window_height);
-			//Vector3 rayOrigin = g->camera->eye;
+			
 			Vector3 coll;
-			//Vector3 normalDir = Vector3(1,1,-(dir.x + dir.y)/ dir.z);
-			
-			if (checkColision(entity,player.pos,nexPos,character_center,coll,elapsed_time))
-			{
-				cout << "Colision detected!" << endl;
-				Vector3 push_away = normalize(coll - character_center) * elapsed_time;
-				nexPos = player.pos - push_away; //move to previous pos but a little bit further
+			Vector3 collnorm;
 
-				//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
-				nexPos.y = 0;
-			}
+			if (!entity->mesh->testSphereCollision(entity->model, character_center, 3.25f, coll, collnorm)) continue;
 
-			/*
-			if (checkColision(entity, dir, rayOrigin, coll) || checkColision(entity, dir * -1, rayOrigin, coll) || checkColision(entity, normalDir, rayOrigin, coll) || checkColision(entity, normalDir * -1, rayOrigin, coll))
-			{
-
-				Vector3 push_away = normalize(coll - character_center) * elapsed_time;
-				nexPos = player.pos - (push_away + playerVel); //move to previous pos but a little bit further
-
-				nexPos.y = 0;
-			}*/
-			
-			//reflejamos el vector velocidad para que de la sensacion de que rebota en la pared
-			//velocity = reflect(velocity, collnorm) * 0.95;
+			Vector3 push_away = normalize(coll - character_center) * elapsed_time;
+			nexPos = player.pos - push_away; //move to previous pos but a little bit further
+			//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
+			nexPos.y = 0;
 		}
 		player.pos = nexPos;
 
