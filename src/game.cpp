@@ -7,7 +7,7 @@
 #include "input.h"
 #include "animation.h"
 #include <Windows.h>
-#include "extra/coldet/coldet.h"
+#include "extra/textparser.h"
 #include <cmath>
 
 //some globals
@@ -86,6 +86,49 @@ vector<string> get_all_files_names_within_folder(bool isMesh)
 	}
 	return names;
 }
+void LoadSceneFile(const char* fileName)
+{
+	TextParser sceneParser = TextParser();
+	if (!sceneParser.create(fileName)) return;
+	cout << "File loaded correctly!" << endl;
+	sceneParser.seek("INFO");
+	while (sceneParser.eof() == 0)
+	{
+		if (sceneParser.getword() == string::basic_string("MESH"))
+		{
+			string meshName = sceneParser.getword();
+			string texName = sceneParser.getword();
+			Vector3 MeshPosition = Vector3(), EulerRotation = Vector3(), ScaleVector = Vector3();
+			MeshPosition.x = sceneParser.getfloat();
+			MeshPosition.y = sceneParser.getfloat();
+			MeshPosition.z = sceneParser.getfloat();
+			EulerRotation.x = sceneParser.getfloat();
+			EulerRotation.y = sceneParser.getfloat();
+			EulerRotation.z = sceneParser.getfloat();
+			ScaleVector.x = sceneParser.getfloat();
+			ScaleVector.y = sceneParser.getfloat();
+			ScaleVector.z = sceneParser.getfloat();
+			int layer, bits;
+			layer = sceneParser.getint();
+			bits = sceneParser.getint();
+
+
+			string meshPath = "data/props/" + meshName;
+			string texPath = "data/textures/" + texName;
+			EntityMesh newEntity = EntityMesh();
+			newEntity.mesh = Mesh::Get(meshPath.c_str());
+			newEntity.texture = Texture::Get(texPath.c_str());
+			newEntity.name = meshName;
+			newEntity.pos = MeshPosition;
+			newEntity.model.translate(newEntity.pos.x, newEntity.pos.y, newEntity.pos.z);
+			newEntity.model.rotateVector(EulerRotation);
+			newEntity.model.scale(ScaleVector.x, ScaleVector.y, ScaleVector.z);
+			meshes.push_back(&newEntity);
+		}
+		//sceneParser.getword();
+	}
+
+}
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -113,7 +156,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
 	//Goblin
-	
+	LoadSceneFile("data/MapJordiAlex.scene");
 	player.texture = new Texture();
 	player.texture->load("data/playermodels/Character.png");
 	player.name = "Player";
