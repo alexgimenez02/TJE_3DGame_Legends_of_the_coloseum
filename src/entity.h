@@ -58,6 +58,7 @@ public:
 	//methods overwritten
 	void render();
 	void update(float elapsed_time);
+	string toString();
 };
 
 

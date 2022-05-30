@@ -10,6 +10,11 @@
 #include "utils.h"
 #include "entity.h"
 
+enum STAGE_ID {
+	MAP = 1,
+	TABERN = 2,
+	ARENA = 3
+};
 class Game
 {
 public:

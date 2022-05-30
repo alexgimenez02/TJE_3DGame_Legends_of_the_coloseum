@@ -65,6 +65,49 @@ void EntityMesh::update(float elapsed_time)
 {
 }
 
+string EntityMesh::toString()
+{
+    string ret = "";
+    ret += "Entity Name: " + name;
+    ret += "\nHas Mesh: ";
+    if (mesh) ret += "Yes";
+    else ret += "No";
+    ret += "\nHas Texture: ";
+    if (texture) ret += "Yes";
+    else ret += "No";
+    ret += "\nWith position: ";
+    ret += "(";
+    ret += pos.x;
+    ret += ",";
+    ret += pos.y;
+    ret += ",";
+    ret += pos.z;
+    ret += ")";
+    ret += "\nWith model matrix: ";
+    ret += "\n";
+    ret += model._11;
+    ret += model._12;
+    ret += model._13;
+    ret += model._14;
+    ret += "\n";
+    ret += model._21;
+    ret += model._22;
+    ret += model._23;
+    ret += model._24;
+    ret += "\n";
+    ret += model._31;
+    ret += model._32;
+    ret += model._33;
+    ret += model._34;
+    ret += "\n";
+    ret += model._41;
+    ret += model._42;
+    ret += model._43;
+    ret += model._44;
+    ret += "--------------------------------------------------------------------";
+    return ret;
+}
+
 
 
 //EntityMap
