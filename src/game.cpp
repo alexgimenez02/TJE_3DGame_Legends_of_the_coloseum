@@ -96,15 +96,29 @@ void LoadSceneFile(const char* fileName)
 	{
 		if (sceneParser.getword() == string::basic_string("MESH"))
 		{
+			EntityMesh* newEntity = new EntityMesh();
 			string meshName = sceneParser.getword();
 			string texName = sceneParser.getword();
-			Vector3 MeshPosition = Vector3(), EulerRotation = Vector3(), ScaleVector = Vector3();
+			Vector3 MeshPosition = Vector3(), ScaleVector = Vector3();
 			MeshPosition.x = sceneParser.getfloat();
 			MeshPosition.y = sceneParser.getfloat();
 			MeshPosition.z = sceneParser.getfloat();
-			EulerRotation.x = sceneParser.getfloat();
-			EulerRotation.y = sceneParser.getfloat();
-			EulerRotation.z = sceneParser.getfloat();
+			newEntity->model._11 = sceneParser.getfloat();
+			newEntity->model._12 = sceneParser.getfloat();
+			newEntity->model._13 = sceneParser.getfloat();
+			newEntity->model._14 = sceneParser.getfloat();
+			newEntity->model._21 = sceneParser.getfloat();
+			newEntity->model._22 = sceneParser.getfloat();
+			newEntity->model._23 = sceneParser.getfloat();
+			newEntity->model._24 = sceneParser.getfloat();
+			newEntity->model._31 = sceneParser.getfloat();
+			newEntity->model._32 = sceneParser.getfloat();
+			newEntity->model._33 = sceneParser.getfloat();
+			newEntity->model._34 = sceneParser.getfloat();
+			newEntity->model._41 = sceneParser.getfloat();
+			newEntity->model._42 = sceneParser.getfloat();
+			newEntity->model._43 = sceneParser.getfloat();
+			newEntity->model._44 = sceneParser.getfloat();
 			ScaleVector.x = sceneParser.getfloat();
 			ScaleVector.y = sceneParser.getfloat();
 			ScaleVector.z = sceneParser.getfloat();
@@ -112,18 +126,17 @@ void LoadSceneFile(const char* fileName)
 			layer = sceneParser.getint();
 			bits = sceneParser.getint();
 
-
 			string meshPath = "data/props/" + meshName;
 			string texPath = "data/textures/" + texName;
-			EntityMesh newEntity = EntityMesh();
-			newEntity.mesh = Mesh::Get(meshPath.c_str());
-			newEntity.texture = Texture::Get(texPath.c_str());
-			newEntity.name = meshName;
-			newEntity.pos = MeshPosition;
-			newEntity.model.translate(newEntity.pos.x, newEntity.pos.y, newEntity.pos.z);
-			newEntity.model.rotateVector(EulerRotation);
-			newEntity.model.scale(ScaleVector.x, ScaleVector.y, ScaleVector.z);
-			meshes.push_back(&newEntity);
+			newEntity->mesh = Mesh::Get(meshPath.c_str());
+			if (!newEntity->mesh) newEntity->mesh = new Mesh();
+			newEntity->texture = Texture::Get(texPath.c_str());
+			if (!newEntity->texture) newEntity->texture = Texture::getBlackTexture();
+			newEntity->name = meshName;
+			newEntity->pos = MeshPosition;
+			newEntity->model.scale(ScaleVector.x, ScaleVector.y, ScaleVector.z);
+			newEntity->model.translate(newEntity->pos.x, newEntity->pos.y, newEntity->pos.z);
+			meshes.push_back(newEntity);
 		}
 		//sceneParser.getword();
 	}
@@ -156,7 +169,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
 	//Goblin
-	LoadSceneFile("data/MapJordiAlex.scene");
+	LoadSceneFile("data/TabernJordiAlex.scene");
 	player.texture = new Texture();
 	player.texture->load("data/playermodels/Character.png");
 	player.name = "Player";
@@ -174,7 +187,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	player.mesh = Mesh::Get("data/playermodels/Character1.obj");
 	terrain.mesh = Mesh::Get("data/terrain.ASE");
 	sky.mesh = Mesh::Get("data/cielo.ASE");
-	mesh = Mesh::Get("data/editor/minihouse.obj");
+	//mesh = Mesh::Get("data/editor/minihouse.obj");
 	player.mesh->name = player.name;
 
 	groundMesh = new Mesh();
@@ -190,8 +203,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	meshnames = get_all_files_names_within_folder(true);
 	texnames = get_all_files_names_within_folder(false);
-	preview.mesh = Mesh::Get(currentMesh.c_str());
-	preview.texture = Texture::Get(currentTex.c_str());
+	//preview.mesh = Mesh::Get(currentMesh.c_str());
+	//preview.texture = Texture::Get(currentTex.c_str());
 
 	//hide the cursor
 
@@ -312,7 +325,7 @@ void Game::render(void)
 			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
 	}
-
+	
 	Matrix44 playerModel;
 	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
 	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0, 1, 0));
