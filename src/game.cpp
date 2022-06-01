@@ -21,6 +21,7 @@ FBO* fbo = NULL;
 float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
 bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false;
+float colisionRadius = 2.0f;
 
 
 bool meshSwap = false;
@@ -38,8 +39,6 @@ Texture* groundTex;
 vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 EntityMesh* SelectedEntity;
-EntityMesh sphere;
-STAGE_ID stage_id = MAP;
 bool mapSwap = false;
 
 vector<string> get_all_files_names_within_folder(bool isMesh)
@@ -141,7 +140,6 @@ void LoadSceneFile(const char* fileName)
 			}
 			meshes.push_back(newEntity);
 		}
-		//sceneParser.getword();
 	}
 
 }
@@ -194,7 +192,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	player.mesh->name = player.name;
 
 	groundMesh = new Mesh();
-	groundMesh->createPlane(200);
+	groundMesh->createPlane(100);
 	groundTex = Texture::Get("data/grass.tga");
 	
 	// example of shader loading using the shaders manager
@@ -206,15 +204,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	meshnames = get_all_files_names_within_folder(true);
 	texnames = get_all_files_names_within_folder(false);
-	//preview.mesh = Mesh::Get(currentMesh.c_str());
-	//preview.texture = Texture::Get(currentTex.c_str());
 
-	sphere.mesh = Mesh::Get("data/sphere.obj");
-	sphere.texture = Texture::Get("data/sphere.png");
 
-	//hide the cursor
-
-	//goblin.mesh->createCollisionModel();
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
@@ -243,7 +234,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	if(Camera::current)	a_mesh->renderBounding(model);
+	//if(Camera::current)	a_mesh->renderBounding(model);
 
 	
 }
@@ -261,41 +252,26 @@ void RenderPlane(float tiling){
 		shader->setUniform("u_tex_tiling", tiling);
 
 		Matrix44 m;
-		for (size_t i = 0; i < 10; i++)
-		{
-			for (size_t j = 0; j < 10; j++)
-			{
+		
 
-				Vector3 size = groundMesh->box.halfsize * 2;
-				m.setTranslation(size.x * i, 0.0f, size.z * j);
-				shader->setUniform("u_model", m);
-				//do the draw call
-				groundMesh->render(GL_TRIANGLES);
-				
-			}
-
-		}
+		Vector3 size = groundMesh->box.halfsize * 2;
+		//m.setTranslation(size.x, 0.0f, size.z);
+		shader->setUniform("u_model", m);
+		//do the draw call
+		groundMesh->render(GL_TRIANGLES);
+		
 
 		//disable shader
 		shader->disable();
 	}
 }
-void drawPreview(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam)
+
+void drawCrosshair()
 {
-	shader->enable();
-	float scale = 0.5;
-	Matrix44 projection_matrix;
-	projection_matrix.ortho(0, Game::instance->window_width / scale, Game::instance->window_height / scale, 0, -1, 1);
-	
-	glDisable(GL_CULL_FACE);
-
-	glLoadMatrixf(projection_matrix.m);
-
-	a_mesh->render(GL_TRIANGLES);
-
-	
-	glEnable(GL_CULL_FACE);
-	shader->disable();
+	float scale = 5;
+	int half_width = Game::instance->window_width / 2;
+	int half_heigth = Game::instance->window_height / 2;
+	drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
 }
 //what to do when the image has to be draw
 void Game::render(void)
@@ -312,16 +288,8 @@ void Game::render(void)
 	glDisable(GL_CULL_FACE);
    
 	//create model matrix for cube
-	//m.rotate(angle*DEG2RAD, Vector3(0, 1, 0));
-	//m.scale(50.0f, 50.0f, 50.0f);
 	Camera* cam = Game::instance->camera;
 	glDisable(GL_DEPTH_TEST);
-	if (editorMode)
-	{
-		/*Matrix44 model;
-		RenderMesh(model, Mesh::Get(currentMesh.c_str()), Texture::Get(currentTex.c_str()), shader, cam);
-		*/
-	}
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
 	if (!meshes.empty())
@@ -340,7 +308,7 @@ void Game::render(void)
 	if (cameraLocked) {
 		Matrix44 camModel = playerModel;
 		camModel.rotate(player.pitch * DEG2RAD, Vector3(1, 0, 0));
-		Vector3 eye = playerModel * Vector3(0.1f, 1.0f, 2.25f);
+		Vector3 eye = playerModel * Vector3(0.1f, 0.45f, 2.25f);
 		Vector3 center = camera->center;
 		if(!yAxisCam)
 			center = eye + camModel.rotateVector(Vector3(0,0,1));
@@ -349,24 +317,15 @@ void Game::render(void)
 		camera->lookAt(eye, center, up);
 		
 	}
-	//RenderMesh(playerModel, player.mesh, player.texture, shader, cam);	
-	RenderMesh(sphere.model, sphere.mesh, sphere.texture, shader, cam);
 	
-	RenderPlane(60.0f);
+	RenderPlane(20.0f);
 
-	//Draw the floor grid
-	//drawGrid();
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	//swap between front buffer and back buffer
+	drawCrosshair();
 	
-	//QUITAR DE AQUI Y METER EN OTRO LADO IMPORTANTEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-	float scale = 5;
-	int half_width = window_width / 2;
-	int half_heigth = window_height / 2;
-	drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
-	//--------------------------------------------------------------------------------------
 	
 	Camera::current = cam;
 	SDL_GL_SwapWindow(this->window);
@@ -422,14 +381,7 @@ void RotateSelected(float angleDegrees)
 }
 void Game::update(double seconds_elapsed)
 {
-	if (mapSwap)
-	{
-		meshes.clear();
-		if (stage_id == MAP) LoadSceneFile("data/MapJordiAlex.scene");
-		else if (stage_id == ARENA) LoadSceneFile("data/ArenaJordiAlex.scene");
-		else if (stage_id == TABERN) LoadSceneFile("data/TabernJordiAlex.scene");
-		mapSwap = false;
-	}
+	
 	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
 
 	//example
@@ -517,15 +469,13 @@ void Game::update(double seconds_elapsed)
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
 		
 		
+#pragma region COLISION
 		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
 		Vector3 nexPos = player.pos + playerVel;
 
-		Vector3 character_center = nexPos + Vector3(0, 0.75f, 0);
+		Vector3 character_center = nexPos + Vector3(0, 0.15f, 0);
 		
-		sphere.model.setTranslation(character_center.x, character_center.y, character_center.z);
-		sphere.model.scale(0.5f, 0.5f, 0.5f);
 		
-
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			EntityMesh* entity = meshes[i];
@@ -533,7 +483,7 @@ void Game::update(double seconds_elapsed)
 			Vector3 coll;
 			Vector3 collnorm;
 
-			if (!entity->mesh->testSphereCollision(entity->model, character_center, 0.5f, coll, collnorm)) continue;
+			if (!entity->mesh->testSphereCollision(entity->model, character_center, colisionRadius, coll, collnorm)) continue;
 
 			Vector3 push_away = normalize(coll - character_center) * elapsed_time;
 			nexPos = player.pos - push_away; //move to previous pos but a little bit further
@@ -541,7 +491,7 @@ void Game::update(double seconds_elapsed)
 			nexPos.y = 0;
 		}
 		player.pos = nexPos;
-
+#pragma endregion
 		
 	}
 	else {
@@ -595,28 +545,13 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 				cout << i << ") Mesh: " << meshes[i]->name.c_str() << endl;
 			}
 			break;
-		case SDLK_F6:
-			cout << "Stage swapped to: ";
-			mapSwap = true;
-			if (stage_id == MAP)
-			{
-				stage_id == TABERN;
-				cout << "Tabern" << endl;
-			}
-			else if (stage_id == TABERN)
-			{
-				stage_id == ARENA;
-				cout << "Arena" << endl;
-			}
-			else if (stage_id == ARENA)
-			{
-				stage_id == MAP;
-				cout << "Map" << endl;
-			}
-			break;
 		case SDLK_KP_PLUS: RotateSelected(10.0f); break;
 		case SDLK_KP_MINUS: RotateSelected(-10.0f); break;
-		
+		case SDLK_8: colisionRadius -= 0.05f; break;
+		case SDLK_9: colisionRadius += 0.05f; break;
+		case SDLK_F9:
+			cout << "Colision radius: " << colisionRadius << endl;
+			break;
 	} 
 }
 

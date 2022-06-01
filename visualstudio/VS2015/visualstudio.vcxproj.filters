@@ -68,6 +68,7 @@
     <ClCompile Include="..\..\src\scene.cpp" />
     <ClCompile Include="..\..\src\stage.cpp" />
     <ClCompile Include="..\..\src\world.cpp" />
+    <ClCompile Include="..\..\src\enemyAI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\camera.h" />
@@ -133,6 +134,7 @@
     <ClInclude Include="..\..\src\scene.h" />
     <ClInclude Include="..\..\src\stage.h" />
     <ClInclude Include="..\..\src\world.h" />
+    <ClInclude Include="..\..\src\enemyAI.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extra">

@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "entity.h"
+#include "extra/textparser.h"
 
 class Stage
 {
@@ -44,12 +45,24 @@ public:
 
 };
 
+enum STAGE_ID {
+	MAP = 1,
+	TABERN = 2,
+	ARENA = 3
+};
+
 class GameStage : Stage
 {
 public:
 
-	EntityMap map;
-	vector<EntityMesh> entities;
+	EntityMesh* player; //Has no real mesh, just to get the model
+	vector<EntityMesh*> entities;
+	EntityMap* sky;
+	EntityMap* terrain;
+	STAGE_ID Stage_ID;
+	bool mapSwap = false, yAxisCam = false;
+	float tiling = 20.0f;
+
 
 	void render();
 	void update(float elapsed_time);
