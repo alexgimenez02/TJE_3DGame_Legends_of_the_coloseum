@@ -292,6 +292,9 @@ void Game::render(void)
 	glDisable(GL_DEPTH_TEST);
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
 	if (!meshes.empty())
 	{
 		for (size_t i = 0; i < meshes.size(); i++)
@@ -323,6 +326,34 @@ void Game::render(void)
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
+#pragma region RENDERALLGUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	Mesh quad;
+
+	quad.createQuad(100, 100, 100, 100, true);
+	Camera cam2D;
+	cam2D.setOrthographic(0, window_width, window_height, 0, -1, 1);
+	Texture* textu = Texture::Get("data/test-tube-held.png");
+	shader->enable();
+	//upload uniforms
+	shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	shader->setUniform("u_viewprojection", cam2D.viewprojection_matrix);
+	if (textu != NULL) {
+		shader->setUniform("u_texture", textu, 0);
+	}
+
+	shader->setUniform("u_time", time);
+	shader->setUniform("u_model", Matrix44());
+
+	//disable shader
+	//hacer draw call
+	quad.render(GL_TRIANGLES);
+	
+	shader->disable();
+#pragma endregion RENDERALLGUI
 	//swap between front buffer and back buffer
 	drawCrosshair();
 	

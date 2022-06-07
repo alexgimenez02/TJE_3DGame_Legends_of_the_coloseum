@@ -155,10 +155,45 @@ void drawCrosshair()
 
 void IntroStage::render()
 {
+	//GUI RENDER
+	
+	glDisable(GL_DEPTH_BUFFER);
+
+	//el vertice lo pasamos tal cual
+	
+
+	//un ejemplo de quad que llenaria toda la pantalla (ya que va de -1 a +1)
+
+	Mesh quad;
+
+	//tres vertices del primer triangulo
+	quad.vertices.push_back( Vector3(-1,1,0) );
+	quad.uvs.push_back( Vector2(0,1) );
+	quad.vertices.push_back( Vector3(-1,-1,0) );
+	quad.uvs.push_back( Vector2(0,0) );
+	quad.vertices.push_back( Vector3(1,-1,0) );
+	quad.uvs.push_back( Vector2(1,0) );
+
+	//tres vértices del segundo triángulo
+	quad.vertices.push_back( Vector3(-1,1,0) );
+	quad.uvs.push_back( Vector2(0,1) );
+	quad.vertices.push_back( Vector3(1,-1,0) );
+	quad.uvs.push_back( Vector2(1,0) );
+	quad.vertices.push_back( Vector3(1,1,0) );
+	quad.uvs.push_back( Vector2(1,1) );
+
+
+	//para pintar quad
+	//pasar info al shader
+	//...
+	//hacer draw call
+	quad.render( GL_TRIANGLES );
+	
 }
 
 void IntroStage::update(float elapsed_time)
 {
+	//OPTION SELECTION
 }
 
 
