@@ -365,7 +365,7 @@ void Game::render(void)
 	if (movementMotion)
 	{
 		Matrix44 T;
-		T.setTranslation(0.0f, 0.05f * sin(time) + 0.02f, 0.0f);
+		T.setTranslation(0.0f, 0.025f * sin(time) + 0.05f, 0.0f);
 		swordModel = swordModel * T;
 	}
 	swordModel.rotate(attackMotion * DEG2RAD, Vector3(0, 0, 1));
