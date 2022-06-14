@@ -20,9 +20,8 @@ float mouse_speed = 1.0f;
 FBO* fbo = NULL;
 float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
-bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false;
-float colisionRadius = 2.0f;
-
+bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false, attack = false, down = true, movementMotion = false;
+float colisionRadius = 2.0f, attackMotion = 0.0f;
 
 bool meshSwap = false;
 int currMeshIdx = 0;
@@ -31,6 +30,7 @@ string currentMesh = "data/editor/barn.obj", currentTex = "data/editor/materials
 
 EntityMesh player;
 EntityMesh preview;
+EntityMesh sword;
 EntityMap terrain;
 EntityMap sky;
 
@@ -174,6 +174,11 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	player.texture = new Texture();
 	player.texture->load("data/playermodels/Character.png");
 	player.name = "Player";
+	{ //Sword Mesh
+		sword.mesh = Mesh::Get("data/props/sword.obj");
+		sword.texture = Texture::Get("data/textures/sword.png");
+		sword.model.scale(1.0f / 20.0f, 1.0f / 20.0f, 1.0f / 20.0f);
+	}
 	//Terrain
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
@@ -201,7 +206,6 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	player.shader = shader;
 	terrain.shader = shader;
 	sky.shader = shader;
-
 	meshnames = get_all_files_names_within_folder(true);
 	texnames = get_all_files_names_within_folder(false);
 
@@ -292,40 +296,7 @@ void Game::render(void)
 	glDisable(GL_DEPTH_TEST);
 	sky.render();
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glDisable(GL_BLEND);
-	if (!meshes.empty())
-	{
-		for (size_t i = 0; i < meshes.size(); i++)
-		{
-			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
-		}
-	}
-	
-	Matrix44 playerModel;
-	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
-	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0, 1, 0));
-	
-	//set the camera as default
-	if (cameraLocked) {
-		Matrix44 camModel = playerModel;
-		camModel.rotate(player.pitch * DEG2RAD, Vector3(1, 0, 0));
-		Vector3 eye = playerModel * Vector3(0.1f, 0.45f, 2.25f);
-		Vector3 center = camera->center;
-		if(!yAxisCam)
-			center = eye + camModel.rotateVector(Vector3(0,0,1));
-		Vector3 up = camModel.rotateVector(Vector3(0,1,0));
-		camera->enable();
-		camera->lookAt(eye, center, up);
-		
-	}
-	
-	RenderPlane(20.0f);
-
-
-	//render the FPS, Draw Calls, etc
-	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
+	/*
 #pragma region RENDERALLGUI
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
@@ -333,7 +304,7 @@ void Game::render(void)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	Mesh quad;
 
-	quad.createQuad(100, 100, 100, 100, true);
+	quad.createQuad(100, 100, 100, 100, false);
 	Camera cam2D;
 	cam2D.setOrthographic(0, window_width, window_height, 0, -1, 1);
 	Texture* textu = Texture::Get("data/test-tube-held.png");
@@ -351,12 +322,61 @@ void Game::render(void)
 	//disable shader
 	//hacer draw call
 	quad.render(GL_TRIANGLES);
-	
+
 	shader->disable();
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
 #pragma endregion RENDERALLGUI
+	
+	*/
+	if (!meshes.empty())
+	{
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
+		}
+	}
+	
+	Matrix44 playerModel;
+	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
+	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0, 1, 0));
+	//set the camera as default
+	//Parentar model --> Offset respecte player que defineix on esta l'arma
+	Matrix44 swordModel;
+	Matrix44 camModel;
+	Vector3 offsetCenter;
+	if (cameraLocked) {
+		camModel = playerModel;
+		camModel.rotate(player.pitch * DEG2RAD, Vector3(1, 0, 0));
+		Vector3 eye = playerModel * Vector3(0.1f, 0.45f, 2.25f);
+		Vector3 center = camera->center;
+		if(!yAxisCam)
+			center = eye + camModel.rotateVector(Vector3(0,0,1));
+		Vector3 up = camModel.rotateVector(Vector3(0,1,0));
+		camera->enable();
+		camera->lookAt(eye, center, up);
+	}
+	Vector3 swordOffset = Vector3(-0.05f,0.25f ,2.6f);
+	swordModel.setTranslation(swordOffset.x, swordOffset.y, swordOffset.z);
+	swordModel.rotate(-90.0f * DEG2RAD, Vector3(0, 1, 0));
+	swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+	swordModel = swordModel * playerModel;
+	if (movementMotion)
+	{
+		Matrix44 T;
+		T.setTranslation(0.0f, 0.05f * sin(time) + 0.02f, 0.0f);
+		swordModel = swordModel * T;
+	}
+	swordModel.rotate(attackMotion * DEG2RAD, Vector3(0, 0, 1));
+
+	RenderMesh(swordModel, sword.mesh, sword.texture, shader, cam);
+	RenderPlane(20.0f);
+
+	//render the FPS, Draw Calls, etc
+	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	//swap between front buffer and back buffer
 	drawCrosshair();
-	
 	
 	Camera::current = cam;
 	SDL_GL_SwapWindow(this->window);
@@ -423,18 +443,9 @@ void Game::update(double seconds_elapsed)
 	{
 		if (cameraLocked)
 		{
-			
-			
-			player.pitch += Input::mouse_delta.y * 5.0f * elapsed_time;
-			//Check limits
-			{
-				player.pitch = player.pitch < -90 ? -90 : player.pitch;
-				player.pitch = player.pitch > 90 ? 90 : player.pitch;
-			}
 			player.yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
 			SDL_ShowCursor(false);
 			Input::centerMouse();
-			//Mostrar crosshair
 			
 		}
 		else {
@@ -485,19 +496,17 @@ void Game::update(double seconds_elapsed)
 	}
 	if (cameraLocked) {
 		float playerSpeed = 5.0f * elapsed_time;
-		//float playerSpeed = 1.5f * elapsed_time;
-		//float rotSpeed = 500.0f * elapsed_time;
 		Matrix44 playerRotation;
 		playerRotation.rotate(player.yaw * DEG2RAD, Vector3(0,1,0));
 		Vector3 playerVel;
 		Vector3 forward = playerRotation.rotateVector(Vector3(0,0,-1));
 		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
-		//player.pos = ply.model.getTranslation();
 		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
+		movementMotion = playerVel.x != 0 || playerVel.y != 0 || playerVel.z != 0;
 		
 		
 #pragma region COLISION
@@ -539,6 +548,22 @@ void Game::update(double seconds_elapsed)
 	//to navigate with the mouse fixed in the middle
 	if (mouse_locked)
 		Input::centerMouse();
+	if (attack)
+	{
+		if (down)
+			attackMotion -= 5.0f;
+		else
+			attackMotion += 5.0f;
+		if (attackMotion <= -90.0f)
+		{
+			down = false;
+		}
+		if (attackMotion >= 0.0f)
+		{
+			attack = false;
+			attackMotion = 0.0f;
+		}
+	}
 }
 
 //Keyboard event handler (sync input)
@@ -578,11 +603,6 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 			break;
 		case SDLK_KP_PLUS: RotateSelected(10.0f); break;
 		case SDLK_KP_MINUS: RotateSelected(-10.0f); break;
-		case SDLK_8: colisionRadius -= 0.05f; break;
-		case SDLK_9: colisionRadius += 0.05f; break;
-		case SDLK_F9:
-			cout << "Colision radius: " << colisionRadius << endl;
-			break;
 	} 
 }
 
@@ -621,6 +641,11 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 		{
 			CheckCol(camera);
 		}
+	}
+	if (event.button == SDL_BUTTON_LEFT)
+	{
+		attack = true; down = true;
+		//cout << "Left click" << endl;
 	}
 }
 
