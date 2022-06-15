@@ -11,6 +11,16 @@ using namespace std;
 #include "includes.h"
 #include "framework.h"
 
+//Enum posiciones
+enum POSITION
+{
+	LEFT = 0,
+	UP = 1,
+	RIGHT = 2,
+	DOWN = 3,
+	NONE = -1
+};
+
 //General functions **************
 long getTime();
 bool readFile(const std::string& filename, std::string& content);

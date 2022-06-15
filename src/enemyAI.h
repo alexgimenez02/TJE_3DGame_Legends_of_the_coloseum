@@ -3,12 +3,6 @@
 
 #include "utils.h"
 
-enum POSITION
-{
-	LEFT = 0,
-	UP = 1,
-	RIGHT = 2
-};
 class EnemyAI
 {
 public:

@@ -20,8 +20,10 @@ float mouse_speed = 1.0f;
 FBO* fbo = NULL;
 float loadDistance = 200.0f;
 float no_render_distance = 1000.0f;
-bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false, attack = false, down = true, movementMotion = false;
-float colisionRadius = 2.0f, attackMotion = 0.0f;
+bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false, attack = false, down = true, movementMotion = false, defence = false;
+bool defMotion = false, defMotionUp = false, defRotation = false;
+float colisionRadius = 2.0f, attackMotion = 0.0f, defenceMotion = 0.0f, defenceMotionUp = 0.0f, defenceRotation = 0.0f;
+POSITION defType = NONE;
 
 bool meshSwap = false;
 int currMeshIdx = 0;
@@ -362,6 +364,19 @@ void Game::render(void)
 	swordModel.rotate(-90.0f * DEG2RAD, Vector3(0, 1, 0));
 	swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
 	swordModel = swordModel * playerModel;
+	if (defType != NONE)
+	{
+		if(defType == UP)
+		{
+			//motion defence up
+			swordModel.translate(0.0f, defenceMotionUp, defenceMotion);
+			swordModel.rotate(defenceRotation * DEG2RAD, Vector3(1, 0, 0));
+		}
+		else
+		{
+			swordModel.translate(0.0f, 0.0f, defenceMotion);
+		}
+	}
 	if (movementMotion)
 	{
 		Matrix44 T;
@@ -369,7 +384,6 @@ void Game::render(void)
 		swordModel = swordModel * T;
 	}
 	swordModel.rotate(attackMotion * DEG2RAD, Vector3(0, 0, 1));
-
 	RenderMesh(swordModel, sword.mesh, sword.texture, shader, cam);
 	RenderPlane(20.0f);
 
@@ -564,6 +578,89 @@ void Game::update(double seconds_elapsed)
 			attackMotion = 0.0f;
 		}
 	}
+	if (defence)
+	{
+		if (defType == LEFT)
+		{
+			//defence left behaviour
+			if (defMotion)
+				defenceMotion += 0.75f;
+			else
+				defenceMotion -= 0.75f;
+			
+			if (defenceMotion >= 10.0f)
+			{
+				defMotion = false;
+			}
+
+			if (defenceMotion == 0.0f)
+			{
+				defence = false;
+				defenceMotion = 0.0f;
+			}
+
+		}
+		else if (defType == RIGHT)
+		{
+			//defence right behaviour
+			if (defMotion)
+				defenceMotion -= 0.5f;
+			else
+				defenceMotion += 0.5f;
+
+			if (defenceMotion < -2.5f)
+			{
+				defMotion = false;
+			}
+
+			if (defenceMotion == 0.0f)
+			{
+				defence = false;
+				defenceMotion = 0.0f;
+			}
+		}
+		else {
+			//defence up behaviour
+			//Movement left
+			//Movement up
+			if (defRotation)
+				defenceRotation -= 7.5f;
+
+			if (defenceRotation <= -90.0f)
+				defRotation = false;
+			//Weapon rotation
+			if (!defRotation)
+			{
+				if (defMotionUp)
+					defenceMotionUp += 1.25f;
+			
+				if (defenceMotionUp > 8.0f)
+					defMotionUp = false;
+				if (!defMotionUp)
+				{
+					defenceRotation += 7.5f;
+					if (defenceRotation >= 0.0f)
+					{
+						if (defenceMotionUp > 0.0f)
+							defenceMotionUp -= 1.25f;
+						defenceRotation = 0.0f;
+
+						if (defenceMotionUp <= 0.0f)
+						{
+							defenceMotionUp = 0.0f;
+							defence = false;
+						}
+					}
+				}
+			}
+
+			
+		}
+	}
+	else
+	{
+		defType = NONE;
+	}
 }
 
 //Keyboard event handler (sync input)
@@ -603,6 +700,32 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 			break;
 		case SDLK_KP_PLUS: RotateSelected(10.0f); break;
 		case SDLK_KP_MINUS: RotateSelected(-10.0f); break;
+		case SDLK_RIGHT:
+			if (!defence)
+			{
+				defence = true; 
+				defType = RIGHT;
+				defMotion = true;
+			}
+			break;
+		case SDLK_LEFT: 
+			if (!defence)
+			{
+				defence = true;
+				defType = LEFT;
+				defMotion = true;
+			}
+			break;
+		case SDLK_UP: 
+			if (!defence)
+			{
+				defence = true;
+				defType = UP;
+				defMotion = true;
+				defMotionUp = true;
+				defRotation = true;
+			}
+			break;
 	} 
 }
 
