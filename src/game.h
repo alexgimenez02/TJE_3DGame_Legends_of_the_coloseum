@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "utils.h"
 #include "entity.h"
+#include "stage.h"
 
 
 class Game

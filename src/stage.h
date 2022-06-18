@@ -12,9 +12,10 @@ public:
 	//Atributes
 	string name;
 
-
+	/*
 	Stage(); //Constructor
 	virtual ~Stage(); //Destructor
+	*/
 
 
 	//Methods
@@ -23,7 +24,7 @@ public:
 
 };
 
-class IntroStage : Stage
+class IntroStage : public Stage
 {
 public:
 	
@@ -34,7 +35,7 @@ public:
 
 };
 
-class ControlsStage : Stage
+class ControlsStage : public Stage
 {
 public:
 
@@ -50,26 +51,37 @@ enum STAGE_ID {
 	TABERN = 2,
 	ARENA = 3
 };
-
-class GameStage : Stage
+typedef struct WEAPON_STRUCT {
+	Vector3 weaponOffset = Vector3(-0.05f, 0.25f, 2.6f);
+	float attackMotion = 0.0f;
+	float defenceMotion = 0.0f, defenceMotionUp = 0.0f, defenceRotation = 0.0f;
+	POSITION defType = NONE; //What type of defence move is being used
+	bool movementMotion = false; //To animate when moving
+	bool attack = false, down = true; //Attack button is pressed
+	bool defence = false; //Defence button pressed
+	bool defMotion = false, defMotionUp = false, defRotation = false; //Different defence action checkers
+	EntityMesh* entity;
+}sWeapon;
+class GameStage : public Stage
 {
 public:
-
+	
+	sWeapon weapon;
 	EntityMesh* player; //Has no real mesh, just to get the model
 	vector<EntityMesh*> entities;
 	EntityMap* sky;
 	EntityMap* terrain;
 	STAGE_ID Stage_ID;
-	bool mapSwap = false, yAxisCam = false;
+	Shader* shader;
+	bool mapSwap = false, yAxisCam = false, isBattle = false;
 	float tiling = 20.0f;
-
 
 	void render();
 	void update(float elapsed_time);
 
 };
 
-class GameOverStage : Stage
+class GameOverStage : public Stage
 {
 public:
 

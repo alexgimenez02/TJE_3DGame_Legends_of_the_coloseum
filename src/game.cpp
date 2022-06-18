@@ -25,13 +25,18 @@ bool defMotion = false, defMotionUp = false, defRotation = false;
 float colisionRadius = 2.0f, attackMotion = 0.0f, defenceMotion = 0.0f, defenceMotionUp = 0.0f, defenceRotation = 0.0f;
 POSITION defType = NONE;
 
+Stage* current_stage;
+IntroStage* intro;
+ControlsStage* controls;
+GameStage* game_s;
+GameOverStage* gameOver;
+
 bool meshSwap = false;
 int currMeshIdx = 0;
 vector<string> meshnames, texnames;
 string currentMesh = "data/editor/barn.obj", currentTex = "data/editor/materials.tga";
 
 EntityMesh player;
-EntityMesh preview;
 EntityMesh sword;
 EntityMap terrain;
 EntityMap sky;
@@ -42,7 +47,7 @@ vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 EntityMesh* SelectedEntity;
 bool mapSwap = false;
-
+/*
 vector<string> get_all_files_names_within_folder(bool isMesh)
 {
 	vector<string> names;
@@ -89,6 +94,7 @@ vector<string> get_all_files_names_within_folder(bool isMesh)
 	}
 	return names;
 }
+
 void LoadSceneFile(const char* fileName)
 {
 	TextParser sceneParser = TextParser();
@@ -145,6 +151,7 @@ void LoadSceneFile(const char* fileName)
 	}
 
 }
+*/
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -164,6 +171,12 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
 	glEnable( GL_DEPTH_TEST ); //check the occlusions using the Z buffer
 
+	intro = new IntroStage();
+	controls = new ControlsStage();
+	game_s = new GameStage();
+	gameOver = new GameOverStage();
+
+
 	//create our camera
 	camera = new Camera();
 	camera->lookAt(Vector3(0.f,100.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
@@ -172,7 +185,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
 	//Goblin
-	LoadSceneFile("data/MapJordiAlex.scene");
+	//LoadSceneFile("data/MapJordiAlex.scene");
 	player.texture = new Texture();
 	player.texture->load("data/playermodels/Character.png");
 	player.name = "Player";
@@ -184,38 +197,41 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	//Terrain
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
+	game_s->sky = new EntityMap();
+	game_s->terrain = new EntityMap();
+	game_s->sky->texture = new Texture();
+	game_s->sky->texture->load("data/cielo.tga");
+	game_s->terrain->mesh = new Mesh();
+	game_s->terrain->mesh->createPlane(100);
+	game_s->terrain->texture = Texture::Get("data/grass.tga");
 
-	sky.texture = new Texture();
-	sky.texture->load("data/cielo.tga");
 
-	//Goblins
 	tex = new Texture();
 	tex->load("data/terrain.tga");
 	// example of loading Mesh from Mesh Manager
-	player.mesh = Mesh::Get("data/playermodels/Character1.obj");
+	//player.mesh = Mesh::Get("data/playermodels/Character1.obj");
 	terrain.mesh = Mesh::Get("data/terrain.ASE");
 	sky.mesh = Mesh::Get("data/cielo.ASE");
 	//mesh = Mesh::Get("data/editor/minihouse.obj");
-	player.mesh->name = player.name;
+	//player.mesh->name = player.name;
 
-	groundMesh = new Mesh();
-	groundMesh->createPlane(100);
-	groundTex = Texture::Get("data/grass.tga");
 	
 	// example of shader loading using the shaders manager
-	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+	game_s->shader = new Shader();
+	game_s->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 
 	player.shader = shader;
 	terrain.shader = shader;
 	sky.shader = shader;
-	meshnames = get_all_files_names_within_folder(true);
-	texnames = get_all_files_names_within_folder(false);
+	//meshnames = get_all_files_names_within_folder(true);
+	//texnames = get_all_files_names_within_folder(false);
 
 
+	current_stage = game_s;
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
-
+/*
 void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam) {
 	//assert(a_mesh != null, "mesh in renderMesh was null");
 	if (!a_shader) return;
@@ -279,6 +295,7 @@ void drawCrosshair()
 	int half_heigth = Game::instance->window_height / 2;
 	drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
 }
+*/
 //what to do when the image has to be draw
 void Game::render(void)
 {
@@ -288,16 +305,18 @@ void Game::render(void)
 	// Clear the window and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+	current_stage->render();
+
 	//set flags
+	/*
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
+	*/
    
 	//create model matrix for cube
-	Camera* cam = Game::instance->camera;
-	glDisable(GL_DEPTH_TEST);
-	sky.render();
-	glEnable(GL_DEPTH_TEST);
+	//Camera* cam = Game::instance->camera;
 	/*
 #pragma region RENDERALLGUI
 	glDisable(GL_DEPTH_TEST);
@@ -332,13 +351,17 @@ void Game::render(void)
 #pragma endregion RENDERALLGUI
 	
 	*/
+	/*
 	if (!meshes.empty())
 	{
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
+			//RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
 	}
+	
+	*/
+	/*
 	
 	Matrix44 playerModel;
 	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
@@ -347,7 +370,6 @@ void Game::render(void)
 	//Parentar model --> Offset respecte player que defineix on esta l'arma
 	Matrix44 swordModel;
 	Matrix44 camModel;
-	Vector3 offsetCenter;
 	if (cameraLocked) {
 		camModel = playerModel;
 		camModel.rotate(player.pitch * DEG2RAD, Vector3(1, 0, 0));
@@ -384,15 +406,16 @@ void Game::render(void)
 		swordModel = swordModel * T;
 	}
 	swordModel.rotate(attackMotion * DEG2RAD, Vector3(0, 0, 1));
-	RenderMesh(swordModel, sword.mesh, sword.texture, shader, cam);
-	RenderPlane(20.0f);
+	*/
+	//RenderMesh(swordModel, sword.mesh, sword.texture, shader, cam);
+	//RenderPlane(20.0f);
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	//swap between front buffer and back buffer
-	drawCrosshair();
+	//drawCrosshair();
 	
-	Camera::current = cam;
+	
 	SDL_GL_SwapWindow(this->window);
 }
 //Adding entities

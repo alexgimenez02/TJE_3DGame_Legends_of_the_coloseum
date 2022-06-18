@@ -40,12 +40,11 @@ public:
 
 
 
-class EntityMesh : Entity
+class EntityMesh : public Entity
 {
 public:
 	string name;
 	Mesh* mesh;
-	Matrix44 model;
 	Texture* texture;
 	Shader* shader;
 	Vector3 scale;
@@ -61,11 +60,10 @@ public:
 };
 
 
-class EntityMap : Entity
+class EntityMap : public Entity
 {
 public:
 	Mesh* mesh;
-	Matrix44 model;
 	Texture* texture;
 	Shader* shader;
 	Vector3 scale;

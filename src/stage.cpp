@@ -1,8 +1,9 @@
 #include "stage.h"
 #include "game.h"
 #include "input.h"
+#include <cmath>
 
-/*
+
 #pragma region SUPLEMENTARY_FUNCTION
 //Read scene file
 void LoadSceneFile(const char* fileName, vector<EntityMesh*> *entities)
@@ -104,8 +105,6 @@ void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 		a_shader->setUniform("u_tex_tiling", tiling);
 
 		Matrix44 m;
-
-
 		Vector3 size = a_mesh->box.halfsize * 2;
 		//m.setTranslation(size.x, 0.0f, size.z);
 		a_shader->setUniform("u_model", m);
@@ -150,7 +149,7 @@ void drawCrosshair()
 }
 #pragma endregion CROSSHAIR	
 #pragma endregion
-*/
+
 //IntroStage
 
 void IntroStage::render()
@@ -213,12 +212,6 @@ void ControlsStage::update(float elapsed_time)
 
 void GameStage::render()
 {
-	//set the clear color (the background color)
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-
-	// Clear the window and the depth buffer
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	//set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -246,10 +239,40 @@ void GameStage::render()
 	Vector3 up = camModel.rotateVector(Vector3(0, 1, 0));
 	cam->enable();
 	cam->lookAt(eye, center, up);
+	//set the camera as default
+	//Parentar model --> Offset respecte player que defineix on esta l'arma
+	Matrix44 swordModel;
+	Vector3 swordOffset = weapon.weaponOffset;
+	swordModel.setTranslation(swordOffset.x, swordOffset.y, swordOffset.z);
+	swordModel.rotate(-90.0f * DEG2RAD, Vector3(0, 1, 0));
+	swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+	swordModel = swordModel * playerModel;
+	if (weapon.defType!= NONE)
+	{
+		if (weapon.defType== UP)
+		{
+			//motion defence up
+			swordModel.translate(0.0f, weapon.defenceMotionUp, weapon.defenceMotion);
+			swordModel.rotate(weapon.defenceRotation * DEG2RAD, Vector3(1, 0, 0));
+		}
+		else
+		{
+			swordModel.translate(0.0f, 0.0f, weapon.defenceMotion);
+		}
+	}
+	if (weapon.movementMotion)
+	{
+		Matrix44 T;
+		T.setTranslation(0.0f, 0.025f * sin(Game::instance->time) + 0.05f, 0.0f);
+		swordModel = swordModel * T;
+	}
+	swordModel.rotate(weapon.attackMotion * DEG2RAD, Vector3(0, 0, 1));
+	RenderMesh(swordModel, weapon.entity->mesh, weapon.entity->texture, shader, cam);
 
-	//RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
+	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
 
 	//drawCrosshair();
+	Camera::current = cam;
 }
 
 void GameStage::update(float elapsed_time)
@@ -287,6 +310,7 @@ void GameStage::update(float elapsed_time)
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
+		weapon.movementMotion = playerVel.x != 0 || playerVel.y != 0 || playerVel.z != 0;
 
 		Vector3 nexPos = player->pos + playerVel;
 
@@ -300,19 +324,17 @@ void GameStage::update(float elapsed_time)
 	}
 	if ((Input::mouse_state & SDL_BUTTON_LEFT)) //is left button pressed?
 	{
-		
-		player->pitch += Input::mouse_delta.y * 5.0f * elapsed_time;
-#pragma region CAMERA_Y_BOUNDARIES
-		{
-			player->pitch = player->pitch < -90 ? -90 : player->pitch;
-			player->pitch = player->pitch > 90 ? 90 : player->pitch;
-		}
 		player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
 		SDL_ShowCursor(false);
 		Input::centerMouse();		
 	}
-#pragma endregion CAMERA_Y_BOUNDARIES
-#pragma region PLAYER_MOVEMENT
+#pragma endregion PLAYER_MOVEMENT
+
+#pragma region WEAPON_MOVEMENT
+
+
+
+#pragma endregion WEAPON_MOVEMENT
 }
 
 //GameOverStage
