@@ -71,7 +71,7 @@ public:
 	vector<EntityMesh*> entities;
 	EntityMap* sky;
 	EntityMap* terrain;
-	STAGE_ID Stage_ID;
+	STAGE_ID Stage_ID = MAP;
 	Shader* shader;
 	bool mapSwap = false, yAxisCam = false, isBattle = false;
 	float tiling = 20.0f;

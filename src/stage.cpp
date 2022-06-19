@@ -86,7 +86,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	if (Camera::current)	a_mesh->renderBounding(model);
+	//if (Camera::current)	a_mesh->renderBounding(model);
 
 
 }
@@ -224,7 +224,7 @@ void GameStage::render()
 	if (!entities.empty())
 	{
 		for (size_t i = 0; i < entities.size(); i++)
-			entities[i]->render();
+			RenderMesh(entities[i]->model, entities[i]->mesh, entities[i]->texture, shader, cam);
 	}
 	Matrix44 playerModel;
 	playerModel.translate(player->pos.x, player->pos.y, player->pos.z);
@@ -271,7 +271,7 @@ void GameStage::render()
 
 	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
 
-	//drawCrosshair();
+	drawCrosshair();
 	Camera::current = cam;
 }
 
@@ -281,17 +281,17 @@ void GameStage::update(float elapsed_time)
 	if (mapSwap)
 	{
 		entities.clear();
-		if (Stage_ID == MAP)
-		{
-			//LoadSceneFile("data/MapJordiAlex.scene", &entities);
-		}
-		else if (Stage_ID == ARENA)
-		{
-			//LoadSceneFile("data/ArenaJordiAlex.scene", &entities);
-		}
-		else if (Stage_ID == TABERN)
-		{
-			//LoadSceneFile("data/TabernJordiAlex.scene", &entities);
+		switch (Stage_ID) {
+		case MAP:
+			LoadSceneFile("data/MapJordiAlex.scene", &entities);
+			break;
+		case ARENA:
+			LoadSceneFile("data/ArenaJordiAlex.scene", &entities);
+			break;
+		case TABERN:
+			LoadSceneFile("data/TabernJordiAlex.scene", &entities);
+			break;
+
 		}
 		mapSwap = false;
 	}
@@ -330,7 +330,115 @@ void GameStage::update(float elapsed_time)
 	}
 #pragma endregion PLAYER_MOVEMENT
 
+#pragma region CAMERA_MOVEMENT
+	player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
+	SDL_ShowCursor(false);
+	Input::centerMouse();
+
+
+#pragma endregion CAMERA_MOVEMENT
+
 #pragma region WEAPON_MOVEMENT
+	float weapon_speed = 20.0f;
+	if (weapon.attack)
+	{
+		if (weapon.down)
+			weapon.attackMotion -= 5.0f * elapsed_time * weapon_speed;
+		else
+			weapon.attackMotion += 5.0f * elapsed_time * weapon_speed;
+		if (weapon.attackMotion <= -90.0f)
+		{
+			weapon.down = false;
+		}
+		if (weapon.attackMotion >= 0.0f)
+		{
+			weapon.attack = false;
+			weapon.attackMotion = 0.0f;
+		}
+	}
+	if (weapon.defence)
+	{
+		if (weapon.defType == LEFT)
+		{
+			//defence left behaviour
+			if (weapon.defMotion)
+				weapon.defenceMotion += 0.75f * elapsed_time * weapon_speed;
+			else
+				weapon.defenceMotion -= 0.75f * elapsed_time * weapon_speed;
+
+			if (weapon.defenceMotion >= 10.0f)
+			{
+				weapon.defMotion = false;
+			}
+
+			if (weapon.defenceMotion == 0.0f)
+			{
+				weapon.defence = false;
+				weapon.defenceMotion = 0.0f;
+			}
+
+		}
+		else if (weapon.defType == RIGHT)
+		{
+			//defence right behaviour
+			if (weapon.defMotion)
+				weapon.defenceMotion -= 0.5f * elapsed_time * weapon_speed;
+			else
+				weapon.defenceMotion += 0.5f * elapsed_time * weapon_speed;
+
+			if (weapon.defenceMotion < -2.5f)
+			{
+				weapon.defMotion = false;
+			}
+
+			if (weapon.defenceMotion == 0.0f)
+			{
+				weapon.defence = false;
+				weapon.defenceMotion = 0.0f;
+			}
+		}
+		else {
+			//defence up behaviour
+			//Movement left
+			//Movement up
+			if (weapon.defRotation)
+				weapon.defenceRotation -= 7.5f * elapsed_time * weapon_speed;
+
+			if (weapon.defenceRotation <= -90.0f)
+				weapon.defRotation = false;
+			//Weapon rotation
+			if (!weapon.defRotation)
+			{
+				if (weapon.defMotionUp)
+					weapon.defenceMotionUp += 1.25f * elapsed_time * weapon_speed;
+
+				if (weapon.defenceMotionUp > 8.0f)
+					weapon.defMotionUp = false;
+				if (!weapon.defMotionUp)
+				{
+					weapon.defenceRotation += 7.5f * elapsed_time * weapon_speed;
+					if (weapon.defenceRotation >= 0.0f)
+					{
+						if (weapon.defenceMotionUp > 0.0f)
+							weapon.defenceMotionUp -= 1.25f * elapsed_time * weapon_speed;
+						weapon.defenceRotation = 0.0f;
+
+						if (weapon.defenceMotionUp <= 0.0f)
+						{
+							weapon.defenceMotionUp = 0.0f;
+							weapon.defence = false;
+						}
+					}
+				}
+			}
+
+
+		}
+	}
+	else
+	{
+		weapon.defType = NONE;
+	}
 
 
 

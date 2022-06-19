@@ -52,7 +52,13 @@ public:
 	float pitch;
 	float yaw;
 
-	EntityMesh(){};
+	EntityMesh(){
+		name = "";
+		scale = Vector3();
+		pos = Vector3();
+		pitch = 0.0f;
+		yaw = 0.0f;
+	};
 	~EntityMesh(){};
 	//methods overwritten
 	void render();

@@ -198,6 +198,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
 	game_s->sky = new EntityMap();
+	game_s->sky->mesh = Mesh::Get("data/cielo.ASE");
 	game_s->terrain = new EntityMap();
 	game_s->sky->texture = new Texture();
 	game_s->sky->texture->load("data/cielo.tga");
@@ -223,9 +224,21 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	player.shader = shader;
 	terrain.shader = shader;
 	sky.shader = shader;
+	game_s->sky->shader = game_s->shader;
+	game_s->terrain->shader = game_s->shader;
+	game_s->player = new EntityMesh();
+	game_s->weapon.entity = new EntityMesh();
+	game_s->weapon.entity->mesh = Mesh::Get("data/props/sword.obj");
+	game_s->weapon.entity->texture = Texture::Get("data/textures/sword.png");
+	game_s->weapon.entity->scale = Vector3(1.0f / 20.0f, 1.0f / 20.0f, 1.0f / 20.0f);
 	//meshnames = get_all_files_names_within_folder(true);
 	//texnames = get_all_files_names_within_folder(false);
-
+		/*
+		{ //Sword Mesh
+		sword.mesh = Mesh::Get("data/props/sword.obj");
+		sword.texture = Texture::Get("data/textures/sword.png");
+		sword.model.scale(1.0f / 20.0f, 1.0f / 20.0f, 1.0f / 20.0f);
+	}*/
 
 	current_stage = game_s;
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
@@ -469,9 +482,10 @@ void RotateSelected(float angleDegrees)
 }
 void Game::update(double seconds_elapsed)
 {
-	
-	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
+	current_stage->update(seconds_elapsed);
 
+	//float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
+	/*
 	//example
 	angle += (float)seconds_elapsed * 10.0f;
 
@@ -684,6 +698,7 @@ void Game::update(double seconds_elapsed)
 	{
 		defType = NONE;
 	}
+	*/
 }
 
 //Keyboard event handler (sync input)
@@ -724,31 +739,47 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 		case SDLK_KP_PLUS: RotateSelected(10.0f); break;
 		case SDLK_KP_MINUS: RotateSelected(-10.0f); break;
 		case SDLK_RIGHT:
-			if (!defence)
-			{
-				defence = true; 
-				defType = RIGHT;
-				defMotion = true;
+			if (current_stage == game_s) {
+				GameStage* stg = (GameStage*)current_stage;
+				if (!defence)
+				{
+					stg->weapon.defence = true; 
+					stg->weapon.defType = RIGHT;
+					stg->weapon.defMotion = true;
+				}
 			}
 			break;
 		case SDLK_LEFT: 
-			if (!defence)
-			{
-				defence = true;
-				defType = LEFT;
-				defMotion = true;
+			if (current_stage == game_s) {
+				GameStage* stg = (GameStage*)current_stage;
+				if (!defence)
+				{
+					stg->weapon.defence = true;
+					stg->weapon.defType = LEFT;
+					stg->weapon.defMotion = true;
+				}
+			}
+				break;
+		case SDLK_UP:
+			if (current_stage == game_s) {
+				GameStage* stg = (GameStage*)current_stage;
+				if (!defence)
+				{
+					stg->weapon.defence = true;
+					stg->weapon.defType = UP;
+					stg->weapon.defMotion = true;
+					stg->weapon.defMotionUp = true;
+					stg->weapon.defRotation = true;
+				}
 			}
 			break;
-		case SDLK_UP: 
-			if (!defence)
+		case SDLK_0:
+			if (current_stage == game_s)
 			{
-				defence = true;
-				defType = UP;
-				defMotion = true;
-				defMotionUp = true;
-				defRotation = true;
+				GameStage* stg = (GameStage*)current_stage;
+				stg->mapSwap = true;
+				stg->Stage_ID = (STAGE_ID)((stg->Stage_ID + 1) % 3);
 			}
-			break;
 	} 
 }
 
