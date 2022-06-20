@@ -75,7 +75,8 @@ public:
 	sWeapon weapon;
 	EntityMesh* player; //Has no real mesh, just to get the model
 	vector<EntityMesh*> enemies;
-	vector<EntityMesh*> entities;
+	vector<EntityMesh*> entities, entitiesColision;
+	EntityMesh* barTender;
 	EntityMap* sky;
 	EntityMap* terrain;
 	STAGE_ID Stage_ID = MAP;

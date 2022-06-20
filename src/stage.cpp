@@ -6,7 +6,7 @@
 
 #pragma region SUPLEMENTARY_FUNCTION
 //Read scene file
-void LoadSceneFile(const char* fileName, vector<EntityMesh*> *entities)
+void LoadSceneFile(const char* fileName, vector<EntityMesh*> *entities, vector<EntityMesh*> *entitiesWithColision)
 {
 	TextParser sceneParser = TextParser();
 	if (!sceneParser.create(fileName)) return;
@@ -57,6 +57,11 @@ void LoadSceneFile(const char* fileName, vector<EntityMesh*> *entities)
 				newEntity->model.scale(2.5f, 2.5f, 2.5f);
 				newEntity->model.translate(0.0f, -0.02f, 0.0f);
 			}
+			bool roof = meshName == "roof_raised.obj" || meshName == "roof_flat.obj";
+			if (!roof) {
+				entitiesWithColision->push_back(newEntity);
+			}
+
 			entities->push_back(newEntity);
 		}
 	}
@@ -109,7 +114,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 
 	a_shader->setUniform("u_time", time);
 
-	//a_shader->setUniform("u_tex_tiling", 1.0f);
+	a_shader->setUniform("u_tex_tiling", 1.0f);
 
 	a_shader->setUniform("u_model", model);
 	//a_mesh->renderBounding(model);
@@ -149,17 +154,17 @@ void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 	}
 }
 #pragma region COLISION
-COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float elapsed_time)
+COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float elapsed_time, float radius = 2.0f)
 {
 
 	COL_RETURN ret;
 	Vector3 character_center = nexPos + Vector3(0, 0.35f, 0);
-
+	if (radius != 2.0f) character_center = nexPos + Vector3(0, 1.225f, 0);
 
 	Vector3 coll;
 	Vector3 collnorm;
 
-	if (!entity->mesh->testSphereCollision(entity->model, character_center, 2.0f, coll, collnorm)) {
+	if (!entity->mesh->testSphereCollision(entity->model, character_center, radius, coll, collnorm)) {
 		ret.colision = false;
 		ret.modifiedPosition = nexPos;
 		return ret;
@@ -324,6 +329,16 @@ void GameStage::render()
 		}
 		
 	}
+	if (Stage_ID == TABERN)
+	{
+		Matrix44 npc_model = Matrix44();
+		npc_model.translate(barTender->pos.x, barTender->pos.y, barTender->pos.z); 
+		npc_model.scale(barTender->scale, barTender->scale, barTender->scale);
+		npc_model.rotate(barTender->yaw * DEG2RAD, Vector3(0, 1, 0));
+		barTender->model = npc_model;
+		RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam);
+		
+	}
 
 	drawCrosshair();
 	Camera::current = cam;
@@ -337,20 +352,28 @@ void GameStage::update(float elapsed_time)
 		entities.clear();
 		switch (Stage_ID) {
 		case MAP:
-			LoadSceneFile("data/MapJordiAlex.scene", &entities);
+			LoadSceneFile("data/MapJordiAlex.scene", &entities, &entitiesColision);
 			player->pos = Vector3(30.12f,0.0f,16.88f);
 			player->yaw = -249.8f;
 			Sleep(250);
 			break;
 		case ARENA:
-			LoadSceneFile("data/ArenaJordiAlex.scene", &entities);
+			LoadSceneFile("data/ArenaJordiAlex.scene", &entities, &entitiesColision);
 			LoadEnemiesInScene("data/enemies.scene", &enemies);
 			player->pos = Vector3(23.52f,0.0f,-27.64f);
 			player->yaw = -435.6f;
 			Sleep(250);
 			break;
 		case TABERN:
-			LoadSceneFile("data/TabernJordiAlex.scene", &entities);
+			LoadSceneFile("data/TabernJordiAlex.scene", &entities, &entitiesColision);
+			if (!barTender) {
+				barTender = new EntityMesh();
+				barTender->mesh = Mesh::Get("data/casual_02.obj");
+				barTender->texture = Texture::Get("data/casual_02.png");
+				barTender->pos = Vector3(0.03f, 0.1f, 1.6f);
+				barTender->scale = 1.5f;
+				barTender->model = Matrix44();
+			}
 			player->pos = Vector3(0.01f,0.0f,-8.30f);
 			player->yaw = -360.25f;
 			//terrain->texture = Texture::Get("data/textures/arena.png");
@@ -402,11 +425,22 @@ void GameStage::update(float elapsed_time)
 		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
 
-		player->pos = player->pos + playerVel;
+		Vector3 nexPos = player->pos + playerVel;
+		COL_RETURN ret;
+		for (size_t i = 0; i < entitiesColision.size(); i++)
+		{
+			ret = CheckColision(player->pos, nexPos, entitiesColision[i], elapsed_time, 0.75f);
+			if (ret.colision) {
+				nexPos = ret.modifiedPosition;
+				break;
+			}
+		}
+		player->pos = nexPos;
 	}
 	else {
 		if (isBattle)
 		{
+			weapon.movementMotion = false;
 			if (currentEnemy->hp > 0) {
 				if (currentEnemy->EmptyAttacks()) {
 					//Wait until hit
@@ -437,6 +471,12 @@ void GameStage::update(float elapsed_time)
 			}
 			else {
 				currentEnemy->enemyEntity->destroy();
+				for (size_t i = 0; i < enemies.size(); i++)
+				{
+					if (enemies[i] == currentEnemy->enemyEntity) {
+						enemies.erase(enemies.begin() + i);
+					}
+				}
 				currentEnemy = NULL;
 				isBattle = false;
 			}
@@ -467,6 +507,9 @@ void GameStage::update(float elapsed_time)
 						isBattle = true;
 						currentEnemy = new EnemyAI(3, enemies[i], 2);
 						currentEnemy->GenerateAttacks();
+						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f);
+						nexPos = Vector3(51.7f, 0.0f, -21.9f);
+						player->yaw = -535.0f;
 						Sleep(300);
 						break;
 					}
@@ -596,24 +639,42 @@ void GameStage::update(float elapsed_time)
 	}
 #pragma endregion WEAPON_MOVEMENT
 #pragma region ENEMY_BEHAVIOUR
-
-	//lookat of enemies
-	for (size_t i = 0; i < enemies.size(); i++)
-	{
-		Vector3 to_target =  enemies[i]->pos - player->pos;
-		to_target.normalize();
-		Vector3 side = enemies[i]->model.rotateVector(Vector3(1, 0, 0)).normalize();
-		float sideDot = side.dot(to_target);
-		if (sideDot > 0.0f) {
-			enemies[i]->yaw += 90.0f * elapsed_time;
-		}
-		else{
-			enemies[i]->yaw -= 90.0f * elapsed_time;
-		}
+	if (Stage_ID == ARENA) {
+		//lookat of enemies
+		for (size_t i = 0; i < enemies.size(); i++)
+		{
+			Vector3 to_target =  enemies[i]->pos - player->pos;
+			to_target.normalize();
+			Vector3 side = enemies[i]->model.rotateVector(Vector3(1, 0, 0)).normalize();
+			float sideDot = side.dot(to_target);
+			if (sideDot > 0.0f) {
+				enemies[i]->yaw += 90.0f * elapsed_time;
+			}
+			else{
+				enemies[i]->yaw -= 90.0f * elapsed_time;
+			}
 		
 
+		}
 	}
 #pragma endregion ENEMY_BEHAVIOUR
+#pragma region BARTENDER_BEHAVIOUR
+	if(Stage_ID == TABERN){
+		Vector3 to_target = barTender->pos - player->pos;
+		to_target.normalize();
+		Vector3 side = barTender->model.rotateVector(Vector3(1, 0, 0)).normalize();
+		float sideDot = side.dot(to_target);
+		if (sideDot > 0.0f) {
+			barTender->yaw += 90.0f * elapsed_time;
+		}
+		else {
+			barTender->yaw -= 90.0f * elapsed_time;
+		}
+	}
+
+	
+
+#pragma enregion BARTENDER_BEHAVIOUR
 }
 
 //GameOverStage
