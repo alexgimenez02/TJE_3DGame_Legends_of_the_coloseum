@@ -1,0 +1,3 @@
+TYPE MESH_NAME TEX_NAME POSX POSY POSZ SCALE BITS
+MESH Character1.obj Character.png 50.0 0.0 -50.0 0.1
+MESH Character2.obj Character.png 50.0 0.0 0.0 0.1

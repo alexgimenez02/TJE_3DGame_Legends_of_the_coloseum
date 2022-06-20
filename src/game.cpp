@@ -230,7 +230,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	game_s->weapon.entity = new EntityMesh();
 	game_s->weapon.entity->mesh = Mesh::Get("data/props/sword.obj");
 	game_s->weapon.entity->texture = Texture::Get("data/textures/sword.png");
-	game_s->weapon.entity->scale = Vector3(1.0f / 20.0f, 1.0f / 20.0f, 1.0f / 20.0f);
+	game_s->weapon.entity->scale = 1 / 20.0f;
 	//meshnames = get_all_files_names_within_folder(true);
 	//texnames = get_all_files_names_within_folder(false);
 		/*
@@ -741,35 +741,43 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 		case SDLK_RIGHT:
 			if (current_stage == game_s) {
 				GameStage* stg = (GameStage*)current_stage;
-				if (!defence)
-				{
-					stg->weapon.defence = true; 
-					stg->weapon.defType = RIGHT;
-					stg->weapon.defMotion = true;
+				if (stg->Stage_ID != TABERN) {
+					if (!defence)
+					{
+						stg->weapon.defence = true; 
+						stg->weapon.defType = RIGHT;
+						stg->weapon.defMotion = true;
+					}
 				}
 			}
 			break;
 		case SDLK_LEFT: 
 			if (current_stage == game_s) {
 				GameStage* stg = (GameStage*)current_stage;
-				if (!defence)
-				{
-					stg->weapon.defence = true;
-					stg->weapon.defType = LEFT;
-					stg->weapon.defMotion = true;
+				if (stg->Stage_ID != TABERN) {
+					if (!defence)
+					{
+						stg->weapon.defence = true;
+						stg->weapon.defType = LEFT;
+						stg->weapon.defMotion = true;
+					}
 				}
 			}
 				break;
 		case SDLK_UP:
 			if (current_stage == game_s) {
 				GameStage* stg = (GameStage*)current_stage;
-				if (!defence)
+				if (stg->Stage_ID != TABERN)
 				{
-					stg->weapon.defence = true;
-					stg->weapon.defType = UP;
-					stg->weapon.defMotion = true;
-					stg->weapon.defMotionUp = true;
-					stg->weapon.defRotation = true;
+					if (!defence)
+					{
+						stg->weapon.defence = true;
+						stg->weapon.defType = UP;
+						stg->weapon.defMotion = true;
+						stg->weapon.defMotionUp = true;
+						stg->weapon.defRotation = true;
+					}
+
 				}
 			}
 			break;
@@ -779,6 +787,20 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 				GameStage* stg = (GameStage*)current_stage;
 				stg->mapSwap = true;
 				stg->Stage_ID = (STAGE_ID)((stg->Stage_ID + 1) % 3);
+			}
+			break;
+		case SDLK_F6:
+			if (current_stage == game_s)
+			{
+				GameStage* stg = (GameStage*)current_stage;
+				stg->debug = !stg->debug;
+			}
+			break;
+		case SDLK_F7:
+			if (current_stage == game_s)
+			{
+				GameStage* stg = (GameStage*)current_stage;
+				cout << "Player yaw: ( " << stg->player->yaw << ")" << endl;
 			}
 	} 
 }
@@ -821,8 +843,16 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 	}
 	if (event.button == SDL_BUTTON_LEFT)
 	{
-		attack = true; down = true;
-		//cout << "Left click" << endl;
+		if (current_stage == game_s)
+		{
+			GameStage* stg = (GameStage*)current_stage;
+			if (stg->Stage_ID != TABERN) {
+				stg->weapon.attacked = true;
+				stg->weapon.attack = true; 
+				stg->weapon.down = true;
+			}
+
+		}
 	}
 }
 

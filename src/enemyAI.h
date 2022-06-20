@@ -2,14 +2,17 @@
 #define ENEMYAI_H
 
 #include "utils.h"
+#include "entity.h"
 
 class EnemyAI
 {
 public:
 	//atributes
 	vector<POSITION> attacks;
+	EntityMesh* enemyEntity;
+	int hp;
 	//ctor
-	EnemyAI(int s);
+	EnemyAI(int s, EntityMesh* ent, int h);
 
 	//methods
 	void GenerateAttacks();

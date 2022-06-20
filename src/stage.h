@@ -4,7 +4,13 @@
 #include "utils.h"
 #include "entity.h"
 #include "extra/textparser.h"
+#include "enemyAI.h"
 
+
+typedef struct COLISION_RETURN {
+	bool colision;
+	Vector3 modifiedPosition;
+}COL_RETURN;
 class Stage
 {
 public:
@@ -47,17 +53,17 @@ public:
 };
 
 enum STAGE_ID {
-	MAP = 1,
-	TABERN = 2,
-	ARENA = 3
+	MAP = 0,
+	TABERN = 1,
+	ARENA = 2
 };
 typedef struct WEAPON_STRUCT {
-	Vector3 weaponOffset = Vector3(-0.05f, 0.25f, 2.6f);
+	Vector3 weaponOffset = Vector3(-0.15f, 0.25f, 0.4f);
 	float attackMotion = 0.0f;
 	float defenceMotion = 0.0f, defenceMotionUp = 0.0f, defenceRotation = 0.0f;
 	POSITION defType = NONE; //What type of defence move is being used
 	bool movementMotion = false; //To animate when moving
-	bool attack = false, down = true; //Attack button is pressed
+	bool attack = false, down = true, attacked = false; //Attack button is pressed
 	bool defence = false; //Defence button pressed
 	bool defMotion = false, defMotionUp = false, defRotation = false; //Different defence action checkers
 	EntityMesh* entity;
@@ -68,12 +74,14 @@ public:
 	
 	sWeapon weapon;
 	EntityMesh* player; //Has no real mesh, just to get the model
+	vector<EntityMesh*> enemies;
 	vector<EntityMesh*> entities;
 	EntityMap* sky;
 	EntityMap* terrain;
 	STAGE_ID Stage_ID = MAP;
 	Shader* shader;
-	bool mapSwap = false, yAxisCam = false, isBattle = false;
+	EnemyAI* currentEnemy;
+	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false;
 	float tiling = 20.0f;
 
 	void render();

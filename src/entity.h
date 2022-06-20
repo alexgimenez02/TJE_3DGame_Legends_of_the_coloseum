@@ -47,14 +47,15 @@ public:
 	Mesh* mesh;
 	Texture* texture;
 	Shader* shader;
-	Vector3 scale;
 	Vector3 pos;
+	float scale;
 	float pitch;
 	float yaw;
 
 	EntityMesh(){
 		name = "";
-		scale = Vector3();
+		//scale = Vector3();
+		scale = 0.0f;
 		pos = Vector3();
 		pitch = 0.0f;
 		yaw = 0.0f;

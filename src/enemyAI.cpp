@@ -1,9 +1,11 @@
 #include "enemyAI.h"
 
 
-EnemyAI::EnemyAI(int s)
+EnemyAI::EnemyAI(int s, EntityMesh* ent, int h)
 {
 	attacks.reserve(s);
+	enemyEntity = ent;
+	hp = h;
 }
 
 void EnemyAI::GenerateAttacks()
@@ -11,12 +13,13 @@ void EnemyAI::GenerateAttacks()
 	/*
 	Randomize attacks
 	*/
-	for (size_t i = 0; i < attacks.size(); i++)
+	for (size_t i = 0; i < attacks.capacity(); i++)
 	{
 		int randomNumber = (int) floor(random() * 3.0f);
 		attacks.push_back((POSITION)randomNumber);
 	}
 }
+
 
 void EnemyAI::ClearAttacks()
 {
