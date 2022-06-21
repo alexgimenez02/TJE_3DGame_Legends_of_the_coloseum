@@ -802,6 +802,12 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 				GameStage* stg = (GameStage*)current_stage;
 				cout << "Player yaw: ( " << stg->player->yaw << ")" << endl;
 			}
+		case SDLK_F8:
+			if (current_stage == game_s)
+			{
+				GameStage* stg = (GameStage*)current_stage;
+				cout << "Player position: ( " << stg->player->pos.x << ","<< stg->player->pos.y << "," << stg->player->pos.z << ")" << endl;
+			}
 	} 
 }
 
@@ -847,7 +853,7 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 		{
 			GameStage* stg = (GameStage*)current_stage;
 			if (stg->Stage_ID != TABERN) {
-				stg->weapon.attacked = true;
+				if(stg->isBattle) stg->weapon.attacked = true;
 				stg->weapon.attack = true; 
 				stg->weapon.down = true;
 			}

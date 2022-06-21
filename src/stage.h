@@ -79,6 +79,7 @@ public:
 	EntityMesh* barTender;
 	EntityMap* sky;
 	EntityMap* terrain;
+	EntityMesh* sphereTabern, *sphereArena;
 	STAGE_ID Stage_ID = MAP;
 	Shader* shader;
 	EnemyAI* currentEnemy;

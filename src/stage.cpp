@@ -123,7 +123,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	//if (Camera::current)	a_mesh->renderBounding(model);
+	if (Camera::current)	a_mesh->renderBounding(model);
 
 
 }
@@ -313,7 +313,12 @@ void GameStage::render()
 	}
 	swordModel.rotate(weapon.attackMotion * DEG2RAD, Vector3(0, 0, 1));
 	if(Stage_ID != TABERN) RenderMesh(swordModel, weapon.entity->mesh, weapon.entity->texture, shader, cam);
-
+	if (Stage_ID == MAP) {
+		if(sphereArena)
+			RenderMesh(sphereArena->model, sphereArena->mesh, sphereArena->texture, shader, cam);
+		if(sphereTabern)
+			RenderMesh(sphereTabern->model, sphereTabern->mesh, sphereTabern->texture, shader, cam);
+	}
 	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
 	if (Stage_ID == ARENA)
 	{
@@ -331,13 +336,14 @@ void GameStage::render()
 	}
 	if (Stage_ID == TABERN)
 	{
-		Matrix44 npc_model = Matrix44();
-		npc_model.translate(barTender->pos.x, barTender->pos.y, barTender->pos.z); 
-		npc_model.scale(barTender->scale, barTender->scale, barTender->scale);
-		npc_model.rotate(barTender->yaw * DEG2RAD, Vector3(0, 1, 0));
-		barTender->model = npc_model;
-		RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam);
-		
+		if (barTender) {
+			Matrix44 npc_model = Matrix44();
+			npc_model.translate(barTender->pos.x, barTender->pos.y, barTender->pos.z); 
+			npc_model.scale(barTender->scale, barTender->scale, barTender->scale);
+			npc_model.rotate(barTender->yaw * DEG2RAD, Vector3(0, 1, 0));
+			barTender->model = npc_model;
+			RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam);
+		}
 	}
 
 	drawCrosshair();
@@ -355,6 +361,18 @@ void GameStage::update(float elapsed_time)
 			LoadSceneFile("data/MapJordiAlex.scene", &entities, &entitiesColision);
 			player->pos = Vector3(30.12f,0.0f,16.88f);
 			player->yaw = -249.8f;
+			sphereArena = new EntityMesh();
+			sphereTabern = new EntityMesh();
+			sphereArena->mesh = Mesh::Get("data/sphere.obj");
+			sphereArena->texture = Texture::Get("data/sphere.png");
+			sphereArena->model = Matrix44();
+			sphereArena->model.translate(0.57f, 0.25f, -12.66f);
+			sphereArena->model.scale(0.5f,0.5f,0.5f);
+			sphereTabern->mesh = Mesh::Get("data/sphere.obj");
+			sphereTabern->texture = Texture::Get("data/sphere.png");
+			sphereTabern->model = Matrix44();
+			sphereTabern->model.translate(-11.005f, 0.25f, 2.67f);
+			sphereTabern->model.scale(0.5f, 0.5f, 0.5f);
 			Sleep(250);
 			break;
 		case ARENA:
@@ -402,15 +420,27 @@ void GameStage::update(float elapsed_time)
 
 		Vector3 nexPos = player->pos + playerVel;
 		COL_RETURN ret;
-		for (size_t i = 0; i < entities.size(); i++)
-		{
-			ret = CheckColision(player->pos, nexPos, entities[i], elapsed_time);
-			if (ret.colision) {
-				nexPos = ret.modifiedPosition;
-				break;
-			}
+		
+		if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time).colision) {
+			mapSwap = true;
+			Stage_ID = ARENA;
 		}
-		player->pos = nexPos;
+		else if (CheckColision(player->pos, nexPos, sphereTabern, elapsed_time).colision) {
+		mapSwap = true;
+		Stage_ID = TABERN;
+		}
+		else {
+			for (size_t i = 0; i < entities.size(); i++)
+			{
+				ret = CheckColision(player->pos, nexPos, entities[i], elapsed_time);
+				if (ret.colision) {
+					nexPos = ret.modifiedPosition;
+					break;
+				}
+			}
+			player->pos = nexPos;
+		}
+
 	}
 	else if (Stage_ID == TABERN)
 	{
@@ -639,40 +669,42 @@ void GameStage::update(float elapsed_time)
 	}
 #pragma endregion WEAPON_MOVEMENT
 #pragma region ENEMY_BEHAVIOUR
-	if (Stage_ID == ARENA) {
-		//lookat of enemies
-		for (size_t i = 0; i < enemies.size(); i++)
-		{
-			Vector3 to_target =  enemies[i]->pos - player->pos;
-			to_target.normalize();
-			Vector3 side = enemies[i]->model.rotateVector(Vector3(1, 0, 0)).normalize();
-			float sideDot = side.dot(to_target);
-			if (sideDot > 0.0f) {
-				enemies[i]->yaw += 90.0f * elapsed_time;
-			}
-			else{
-				enemies[i]->yaw -= 90.0f * elapsed_time;
-			}
+	if (!mapSwap) {
+		if (Stage_ID == ARENA) {
+			//lookat of enemies
+			for (size_t i = 0; i < enemies.size(); i++)
+			{
+				Vector3 to_target =  enemies[i]->pos - player->pos;
+				to_target.normalize();
+				Vector3 side = enemies[i]->model.rotateVector(Vector3(1, 0, 0)).normalize();
+				float sideDot = side.dot(to_target);
+				if (sideDot > 0.0f) {
+					enemies[i]->yaw += 90.0f * elapsed_time;
+				}
+				else{
+					enemies[i]->yaw -= 90.0f * elapsed_time;
+				}
 		
 
+			}
 		}
 	}
 #pragma endregion ENEMY_BEHAVIOUR
 #pragma region BARTENDER_BEHAVIOUR
-	if(Stage_ID == TABERN){
-		Vector3 to_target = barTender->pos - player->pos;
-		to_target.normalize();
-		Vector3 side = barTender->model.rotateVector(Vector3(1, 0, 0)).normalize();
-		float sideDot = side.dot(to_target);
-		if (sideDot > 0.0f) {
-			barTender->yaw += 90.0f * elapsed_time;
-		}
-		else {
-			barTender->yaw -= 90.0f * elapsed_time;
+	if (!mapSwap) {
+		if (Stage_ID == TABERN) {
+			Vector3 to_target = barTender->pos - player->pos;
+			to_target.normalize();
+			Vector3 side = barTender->model.rotateVector(Vector3(1, 0, 0)).normalize();
+			float sideDot = side.dot(to_target);
+			if (sideDot > 0.0f) {
+				barTender->yaw += 90.0f * elapsed_time;
+			}
+			else {
+				barTender->yaw -= 90.0f * elapsed_time;
+			}
 		}
 	}
-
-	
 
 #pragma enregion BARTENDER_BEHAVIOUR
 }
