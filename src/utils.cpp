@@ -19,6 +19,8 @@
 #include <string>
 #include <iostream>
 
+
+
 long getTime()
 {
 	#ifdef WIN32
@@ -133,6 +135,31 @@ bool readFileBin(const std::string& filename, std::vector<unsigned char>& buffer
 	fclose(fp);
 	return true;
 }
+
+#pragma region FILE_SEARCHER
+vector<string> get_all_files_names_within_folder()
+{
+	vector<string> names;
+	LPCWSTR search_path = L"data/icons/*.scene ";
+
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = ::FindFirstFile(search_path, &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+				wstring recieve = fd.cFileName;
+				string toAdd(recieve.begin(), recieve.end());
+				names.push_back("data/icons/" + toAdd);
+			}
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+	}
+	return names;
+
+}
+#pragma endregion FILE_SEARCHER
 
 void stdlog(std::string str)
 {

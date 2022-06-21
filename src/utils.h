@@ -20,11 +20,18 @@ enum POSITION
 	DOWN = 3,
 	NONE = -1
 };
-
+enum STAGE
+{
+	INTRO = 0,
+	CONTROLS = 1,
+	GAME = 2,
+	GAMEOVER = 3
+};
 //General functions **************
 long getTime();
 bool readFile(const std::string& filename, std::string& content);
 bool readFileBin(const std::string& filename, std::vector<unsigned char>& buffer);
+vector<string> get_all_files_names_within_folder();
 
 //generic purposes fuctions
 void drawGrid();

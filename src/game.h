@@ -28,6 +28,8 @@ public:
 	float elapsed_time;
 	int fps;
 	bool must_exit;
+	bool wasLeftButtonPressed = false;
+	STAGE scene = INTRO;
 
 	//some vars
 	Camera* camera; //our global camera

@@ -1,8 +1,12 @@
 #include "stage.h"
 #include "game.h"
 #include "input.h"
+#include <iostream>
+#include <fstream>
 #include <cmath>
 
+
+GLenum error;
 
 #pragma region SUPLEMENTARY_FUNCTION
 //Read scene file
@@ -153,6 +157,55 @@ void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 		a_shader->disable();
 	}
 }
+void RenderGUI(float x, float y, float w, float h, Shader* a_shader, Texture* tex, Vector4 tex_range, Vector4 color = Vector4(1, 1, 1, 1), bool flipUV = false) {
+	
+	int windowWidth = Game::instance->window_width;
+	int windowHeight = Game::instance->window_height;
+	
+	Mesh quad;
+	quad.createQuad(x, y, w, h, flipUV);
+
+	Camera cam2D;
+	cam2D.setOrthographic(0, windowWidth, windowHeight, 0, -1, 1);
+
+	if (!a_shader)return;
+	a_shader->enable();
+
+	a_shader->setUniform("u_color", color);
+	a_shader->setUniform("u_viewprojection", cam2D.viewprojection_matrix);
+
+	if(tex != NULL) a_shader->setUniform("u_texture", tex, 0);
+
+	a_shader->setUniform("u_time", time);
+	a_shader->setUniform("u_tex_range", tex_range);	
+	a_shader->setUniform("u_model", Matrix44());
+	quad.render(GL_TRIANGLES);
+
+
+	a_shader->disable();
+	
+
+
+}
+bool RenderButton(float x, float y, float w, float h, Shader* a_shader, Texture* tex,Texture* text_hover, Vector4 tex_range, bool flipUV = false)
+{
+	Vector2 mouse = Input::mouse_position;
+	float halfWidth = w * 0.5f;
+	float halfHeight = h * 0.5f;
+	float min_x = x - halfWidth;
+	float max_x = x + halfWidth;
+	float min_y = y - halfHeight;
+	float max_y = y + halfHeight;
+
+
+	bool hover = mouse.x >= min_x && mouse.x <= max_x && mouse.y >= min_y && mouse.y <= max_y;
+	Texture* texture = hover ? text_hover : tex;
+	RenderGUI(x, y, w, h, a_shader, texture, tex_range, Vector4(1,1,1,1), flipUV);
+
+
+	bool pressed = Game::instance->wasLeftButtonPressed && hover;
+	return pressed;
+}
 #pragma region COLISION
 COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float elapsed_time, float radius = 2.0f)
 {
@@ -194,50 +247,110 @@ void drawCrosshair()
 #pragma endregion
 
 //IntroStage
+#pragma region COMPLEMENTARY_ICON_FUNCTIONS
+ICON_POSITION IntroStage::readPosition(const char* filename)
+{
+	TextParser sceneParser = TextParser();
+	if (!sceneParser.create(filename)) return ICON_POSITION();
+	cout << "File loaded correctly!" << endl;
+	sceneParser.seek("START");
+	ICON_POSITION ret{ 0.0f, 0.0f };
+	while (sceneParser.eof() == 0)
+	{
+		if (sceneParser.getword() == string::basic_string("X:")) 
+			ret.x = sceneParser.getfloat();
+		if (sceneParser.getword() == string::basic_string("Y:")) 
+			ret.y = sceneParser.getfloat();
+	}
+	return ret;
+}
+
+void IntroStage::savePosition(float x, float y, const char* filename)
+{
+
+	// Create and open a text file
+	string count = to_string(num_iconfiles + 1);
+	string path = "data/icons/" + string::basic_string(filename) + count.c_str() + ".scene";
+	ofstream MyFile(path.c_str());
+
+	// Write to the file
+	MyFile << "START" << endl;
+	MyFile << "X: " << x << " Y: " << y;
+
+	
+	// Close the file
+	MyFile.close();
+	icons = get_all_files_names_within_folder();
+	num_iconfiles = icons.size();
+	for (size_t i = 0; i < num_iconfiles; i++)
+	{
+		positions.push_back(readPosition(icons[i].c_str()));
+	}
+}
+void IntroStage::reloadIcons()
+{
+	icons.clear();
+	positions.clear();
+	icons = get_all_files_names_within_folder();
+	for (size_t i = 0; i < icons.size(); i++)
+	{
+		positions.push_back(readPosition(icons[i].c_str()));
+	}
+}
+#pragma endregion COMPLEMENTARY_ICON_FUNCTIONS
 
 void IntroStage::render()
 {
 	//GUI RENDER
 	
-	glDisable(GL_DEPTH_BUFFER);
+	// RenderAllGUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	//el vertice lo pasamos tal cual
 	
-
-	//un ejemplo de quad que llenaria toda la pantalla (ya que va de -1 a +1)
-
-	Mesh quad;
-
-	//tres vertices del primer triangulo
-	quad.vertices.push_back( Vector3(-1,1,0) );
-	quad.uvs.push_back( Vector2(0,1) );
-	quad.vertices.push_back( Vector3(-1,-1,0) );
-	quad.uvs.push_back( Vector2(0,0) );
-	quad.vertices.push_back( Vector3(1,-1,0) );
-	quad.uvs.push_back( Vector2(1,0) );
-
-	//tres vértices del segundo triángulo
-	quad.vertices.push_back( Vector3(-1,1,0) );
-	quad.uvs.push_back( Vector2(0,1) );
-	quad.vertices.push_back( Vector3(1,-1,0) );
-	quad.uvs.push_back( Vector2(1,0) );
-	quad.vertices.push_back( Vector3(1,1,0) );
-	quad.uvs.push_back( Vector2(1,1) );
-
+	//RenderGUI(50,50,100,100,Texture::Get("data/grass.tga"));
+	
+	if (RenderButton(positions[0].x, positions[0].y, 250, 75, a_shader, textures[0], textures_hover[0], Vector4(0, 0, 1, 1)))
+	{
+		Game::instance->scene = GAME;
+		cout << "Let's game" << endl;
+	}
+	else if (RenderButton(positions[1].x, positions[1].y, 250, 75, a_shader, textures[1], textures_hover[1], Vector4(0, 0, 1, 1)))
+	{
+		Game::instance->scene = CONTROLS;
+		cout << "Scene change" << endl;
+	}
+	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], textures_hover[2], Vector4(0, 0, 1, 1)))
+	{
+		cout << "Bye bye!" << endl;
+		Game::instance->must_exit = true;
+	}
 
 	//para pintar quad
 	//pasar info al shader
 	//...
 	//hacer draw call
-	quad.render( GL_TRIANGLES );
+	//RenderMenuGUI(&quad,shader,Game::instance->camera);
+		
+
+	
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+
+	Camera* cam = Game::instance->camera;
+	Camera::current = cam;
+	Game::instance->wasLeftButtonPressed = false;
 	
 }
 
 void IntroStage::update(float elapsed_time)
 {
 	//OPTION SELECTION
+	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) reloadIcons();
 }
-
 
 //ControlsStage
 
@@ -740,7 +853,7 @@ void GameStage::update(float elapsed_time)
 				barTender->yaw -= 90.0f * elapsed_time;
 			}
 		}
-#pragma enregion BARTENDER_BEHAVIOUR
+#pragma endregion BARTENDER_BEHAVIOUR
 
 	}
 	if(!mapSwap) previous_stage = Stage_ID;

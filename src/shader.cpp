@@ -79,7 +79,8 @@ void Shader::setFilenames(const std::string& vsf, const std::string& psf)
 bool Shader::load(const std::string& vsf, const std::string& psf, const char* macros)
 {
 	assert(	compiled == false );
-	assert (glGetError() == GL_NO_ERROR);
+	GLenum error = (GLenum)glGetError();
+	assert (error == GL_NO_ERROR);
 
 	vs_filename = vsf;
 	ps_filename = psf;

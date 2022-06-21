@@ -29,15 +29,27 @@ public:
 	virtual void update(float elapsed_time) = 0;
 
 };
-
+struct ICON_POSITION {
+	float x;
+	float y;
+};
 class IntroStage : public Stage
 {
 public:
-	
+	Shader* a_shader;
+	Texture* tex;
+	float iconx = 0.0f, icony = 0.0f;
+	int num_iconfiles = 0;
+	vector<string> icons;
+	vector<ICON_POSITION> positions;
+	vector<Texture*> textures, textures_hover;
 	//imagen de fondo para el menu
 
 	void render();
 	void update(float elapsed_time);
+	ICON_POSITION readPosition(const char* filename);
+	void savePosition(float x, float y, const char* filename);
+	void reloadIcons();
 
 };
 
