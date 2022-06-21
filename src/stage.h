@@ -80,7 +80,7 @@ public:
 	EntityMap* sky;
 	EntityMap* terrain;
 	EntityMesh* sphereTabern, *sphereArena;
-	STAGE_ID Stage_ID = MAP;
+	STAGE_ID Stage_ID = MAP, previous_stage = MAP;
 	Shader* shader;
 	EnemyAI* currentEnemy;
 	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false;

@@ -801,11 +801,6 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 			{
 				GameStage* stg = (GameStage*)current_stage;
 				cout << "Player yaw: ( " << stg->player->yaw << ")" << endl;
-			}
-		case SDLK_F8:
-			if (current_stage == game_s)
-			{
-				GameStage* stg = (GameStage*)current_stage;
 				cout << "Player position: ( " << stg->player->pos.x << ","<< stg->player->pos.y << "," << stg->player->pos.z << ")" << endl;
 			}
 	} 

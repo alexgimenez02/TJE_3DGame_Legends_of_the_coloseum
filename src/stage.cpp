@@ -57,7 +57,7 @@ void LoadSceneFile(const char* fileName, vector<EntityMesh*> *entities, vector<E
 				newEntity->model.scale(2.5f, 2.5f, 2.5f);
 				newEntity->model.translate(0.0f, -0.02f, 0.0f);
 			}
-			bool roof = meshName == "roof_raised.obj" || meshName == "roof_flat.obj";
+			bool roof = meshName == "roof_raised.obj" || meshName == "roof_flat.obj" || meshName == "door_frame.obj";
 			if (!roof) {
 				entitiesWithColision->push_back(newEntity);
 			}
@@ -123,7 +123,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	if (Camera::current)	a_mesh->renderBounding(model);
+	//if (Camera::current) a_mesh->renderBounding(model);
 
 
 }
@@ -159,7 +159,7 @@ COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float e
 
 	COL_RETURN ret;
 	Vector3 character_center = nexPos + Vector3(0, 0.35f, 0);
-	if (radius != 2.0f) character_center = nexPos + Vector3(0, 1.225f, 0);
+	if (radius == 0.75f) character_center = nexPos + Vector3(0, 1.225f, 0);
 
 	Vector3 coll;
 	Vector3 collnorm;
@@ -170,7 +170,7 @@ COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float e
 		return ret;
 	}
 
-	//cout << "Colision!" << endl;
+	if(radius == 0.75f) cout << "Colision!" << endl;
 	Vector3 push_away = normalize(coll - character_center) * elapsed_time;
 	nexPos = (pos - push_away); //move to previous pos but a little bit further
 	//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
@@ -314,10 +314,18 @@ void GameStage::render()
 	swordModel.rotate(weapon.attackMotion * DEG2RAD, Vector3(0, 0, 1));
 	if(Stage_ID != TABERN) RenderMesh(swordModel, weapon.entity->mesh, weapon.entity->texture, shader, cam);
 	if (Stage_ID == MAP) {
-		if(sphereArena)
+		if (sphereArena) {
+			Matrix44 T;
+			T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
+			sphereArena->model = sphereArena->model * T;
 			RenderMesh(sphereArena->model, sphereArena->mesh, sphereArena->texture, shader, cam);
-		if(sphereTabern)
+		}
+		if (sphereTabern) {
+			Matrix44 T;
+			T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
+			sphereTabern->model = sphereTabern->model * T;
 			RenderMesh(sphereTabern->model, sphereTabern->mesh, sphereTabern->texture, shader, cam);
+		}
 	}
 	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
 	if (Stage_ID == ARENA)
@@ -355,24 +363,38 @@ void GameStage::update(float elapsed_time)
 #pragma region SCENE_LOADER
 	if (mapSwap)
 	{
+		
 		entities.clear();
+		entitiesColision.clear();
 		switch (Stage_ID) {
 		case MAP:
+			if (entities.size() > 0) 
+				entities.clear();
+			if (entitiesColision.size() > 0)
+				entities.clear();
 			LoadSceneFile("data/MapJordiAlex.scene", &entities, &entitiesColision);
-			player->pos = Vector3(30.12f,0.0f,16.88f);
+			if (previous_stage == ARENA) {
+				player->pos = Vector3(0.69f, 0.0f, -9.82f);
+				player->yaw = -3.34f;
+			}
+			else if (previous_stage == TABERN) {
+				player->pos = Vector3(-7.60f, 0.0f, 3.58f);
+				player->yaw = -1504.69f;
+			}
+			else player->pos = Vector3(30.12f,0.0f,16.88f);
 			player->yaw = -249.8f;
 			sphereArena = new EntityMesh();
 			sphereTabern = new EntityMesh();
-			sphereArena->mesh = Mesh::Get("data/sphere.obj");
-			sphereArena->texture = Texture::Get("data/sphere.png");
+			sphereArena->mesh = Mesh::Get("data/arrow.obj");
+			sphereArena->texture = Texture::Get("data/arrow.png");
 			sphereArena->model = Matrix44();
 			sphereArena->model.translate(0.57f, 0.25f, -12.66f);
-			sphereArena->model.scale(0.5f,0.5f,0.5f);
-			sphereTabern->mesh = Mesh::Get("data/sphere.obj");
-			sphereTabern->texture = Texture::Get("data/sphere.png");
+			//sphereArena->model.scale(0.5f,0.5f,0.5f);
+			sphereTabern->mesh = Mesh::Get("data/arrow.obj");
+			sphereTabern->texture = Texture::Get("data/arrow.png");
 			sphereTabern->model = Matrix44();
 			sphereTabern->model.translate(-11.005f, 0.25f, 2.67f);
-			sphereTabern->model.scale(0.5f, 0.5f, 0.5f);
+			//sphereTabern->model.scale(0.5f, 0.5f, 0.5f);
 			Sleep(250);
 			break;
 		case ARENA:
@@ -386,10 +408,10 @@ void GameStage::update(float elapsed_time)
 			LoadSceneFile("data/TabernJordiAlex.scene", &entities, &entitiesColision);
 			if (!barTender) {
 				barTender = new EntityMesh();
-				barTender->mesh = Mesh::Get("data/casual_02.obj");
-				barTender->texture = Texture::Get("data/casual_02.png");
+				barTender->mesh = Mesh::Get("data/playermodels/Character7.obj");
+				barTender->texture = Texture::Get("data/playermodels/Character.png");
 				barTender->pos = Vector3(0.03f, 0.1f, 1.6f);
-				barTender->scale = 1.5f;
+				barTender->scale = 0.25f;
 				barTender->model = Matrix44();
 			}
 			player->pos = Vector3(0.01f,0.0f,-8.30f);
@@ -421,18 +443,20 @@ void GameStage::update(float elapsed_time)
 		Vector3 nexPos = player->pos + playerVel;
 		COL_RETURN ret;
 		
-		if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time).colision) {
+		if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time, 1.5f).colision) {
 			mapSwap = true;
+			previous_stage = Stage_ID;
 			Stage_ID = ARENA;
 		}
 		else if (CheckColision(player->pos, nexPos, sphereTabern, elapsed_time).colision) {
-		mapSwap = true;
-		Stage_ID = TABERN;
+			mapSwap = true;
+			previous_stage = Stage_ID;
+			Stage_ID = TABERN;
 		}
 		else {
 			for (size_t i = 0; i < entities.size(); i++)
 			{
-				ret = CheckColision(player->pos, nexPos, entities[i], elapsed_time);
+				ret = CheckColision(player->pos, nexPos, entities[i], elapsed_time, 1.0f);
 				if (ret.colision) {
 					nexPos = ret.modifiedPosition;
 					break;
@@ -461,7 +485,14 @@ void GameStage::update(float elapsed_time)
 		{
 			ret = CheckColision(player->pos, nexPos, entitiesColision[i], elapsed_time, 0.75f);
 			if (ret.colision) {
-				nexPos = ret.modifiedPosition;
+				if (entitiesColision[i]->name._Equal("DOOR.OBJ")) {
+				mapSwap = true;
+					previous_stage = Stage_ID;
+					Stage_ID = MAP;
+				}
+				else {
+					nexPos = ret.modifiedPosition;
+				}
 				break;
 			}
 		}
@@ -510,6 +541,13 @@ void GameStage::update(float elapsed_time)
 				currentEnemy = NULL;
 				isBattle = false;
 			}
+
+			if (enemies.size() <= 0) {
+				mapSwap = true;
+				previous_stage = Stage_ID;
+				Stage_ID = MAP;
+				
+			}
 		}
 		else {
 			Matrix44 playerRotation;
@@ -537,15 +575,13 @@ void GameStage::update(float elapsed_time)
 						isBattle = true;
 						currentEnemy = new EnemyAI(3, enemies[i], 2);
 						currentEnemy->GenerateAttacks();
-						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f);
-						nexPos = Vector3(51.7f, 0.0f, -21.9f);
-						player->yaw = -535.0f;
+						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f); //Center for enemy
+						nexPos = Vector3(51.7f, 0.0f, -21.9f); //Center for player
+						player->yaw = -535.0f; //Rotate player to enemy
 						Sleep(300);
 						break;
 					}
 				}
-		
-		
 			player->pos = nexPos;
 		}
 
@@ -668,8 +704,8 @@ void GameStage::update(float elapsed_time)
 		weapon.defType = NONE;
 	}
 #pragma endregion WEAPON_MOVEMENT
-#pragma region ENEMY_BEHAVIOUR
 	if (!mapSwap) {
+#pragma region ENEMY_BEHAVIOUR
 		if (Stage_ID == ARENA) {
 			//lookat of enemies
 			for (size_t i = 0; i < enemies.size(); i++)
@@ -688,10 +724,10 @@ void GameStage::update(float elapsed_time)
 
 			}
 		}
-	}
 #pragma endregion ENEMY_BEHAVIOUR
+	
+	
 #pragma region BARTENDER_BEHAVIOUR
-	if (!mapSwap) {
 		if (Stage_ID == TABERN) {
 			Vector3 to_target = barTender->pos - player->pos;
 			to_target.normalize();
@@ -704,9 +740,10 @@ void GameStage::update(float elapsed_time)
 				barTender->yaw -= 90.0f * elapsed_time;
 			}
 		}
-	}
-
 #pragma enregion BARTENDER_BEHAVIOUR
+
+	}
+	if(!mapSwap) previous_stage = Stage_ID;
 }
 
 //GameOverStage
