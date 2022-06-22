@@ -43,6 +43,9 @@ public:
 	vector<string> icons;
 	vector<ICON_POSITION> positions;
 	vector<Texture*> textures, textures_hover;
+	EntityMap* terrain, *sky;
+	EntityMesh* colosseum;
+	Camera* cam;
 	//imagen de fondo para el menu
 
 	void render();

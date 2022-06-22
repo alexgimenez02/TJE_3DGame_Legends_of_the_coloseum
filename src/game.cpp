@@ -72,7 +72,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	game_s = new GameStage();
 	gameOver = new GameOverStage();
 
-
+	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 	//create our camera
 	camera = new Camera();
 	camera->lookAt(Vector3(0.f,100.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
@@ -93,6 +93,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	//Terrain
 	terrain.texture = new Texture();
 	terrain.texture->load("data/terrain.tga");
+	//Game Stage Init
 	game_s->sky = new EntityMap();
 	game_s->sky->mesh = Mesh::Get("data/cielo.ASE");
 	game_s->terrain = new EntityMap();
@@ -101,6 +102,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	game_s->terrain->mesh = new Mesh();
 	game_s->terrain->mesh->createPlane(100);
 	game_s->terrain->texture = Texture::Get("data/grass.tga");
+
+	//Intro Stage Init
 	intro->tex = Texture::Get("data/test_gui.png");
 	intro->a_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
 	intro->icons = get_all_files_names_within_folder();
@@ -117,11 +120,26 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Controls  hover.png"));
 	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Exit hover.png"));
 
+	intro->terrain = new EntityMap();
+	intro->terrain->mesh = new Mesh();
+	intro->terrain->mesh->createPlane(7000);
+	intro->terrain->texture = Texture::Get("data/grass.tga");
+	intro->sky = new EntityMap();
+	intro->sky->mesh = Mesh::Get("data/cielo.ASE");
+	intro->sky->texture = Texture::Get("data/cielo.tga");
+	intro->sky->shader = shader;
+	intro->colosseum = new EntityMesh();
+	intro->colosseum->mesh = Mesh::Get("data/props/Coliseo.obj");
+	intro->colosseum->texture = Texture::Get("data/textures/Coliseo.png");
+	intro->cam = new Camera();
+	intro->cam = Game::instance->camera;
+	intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+
 	tex = new Texture();
 	tex->load("data/terrain.tga");
 	// example of loading Mesh from Mesh Manager
 	//player.mesh = Mesh::Get("data/playermodels/Character1.obj");
-	terrain.mesh = Mesh::Get("data/terrain.ASE");
+	//terrain.mesh = Mesh::Get("data/terrain.ASE");
 	sky.mesh = Mesh::Get("data/cielo.ASE");
 	//mesh = Mesh::Get("data/editor/minihouse.obj");
 	//player.mesh->name = player.name;
@@ -326,6 +344,8 @@ void Game::update(double seconds_elapsed)
 	{
 	case INTRO:
 		current_stage = intro;
+		
+		SDL_ShowCursor(true);
 		break;
 	case CONTROLS:
 		current_stage = controls;
@@ -344,7 +364,10 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 {
 	switch(event.keysym.sym)
 	{
-		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
+		case SDLK_ESCAPE:  
+			scene = INTRO;
+			intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0)); 
+			break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
 		case SDLK_F2: 
 			cout << "Camera positions: \nEye: (" << camera->eye.x << "," << camera->eye.y << "," << camera->eye.z << ")\n"
@@ -488,7 +511,7 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 		else if (current_stage == intro)
 		{
 			wasLeftButtonPressed = true;
-			cout << "left click" << endl;
+			//cout << "left click" << endl;
 		}
 	}
 }

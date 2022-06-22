@@ -7,6 +7,7 @@
 
 
 GLenum error;
+float rotationSpeedIntro  = 0.55f;
 
 #pragma region SUPLEMENTARY_FUNCTION
 //Read scene file
@@ -301,6 +302,17 @@ void IntroStage::reloadIcons()
 
 void IntroStage::render()
 {
+	
+	//planeMatrix.translate(0.0f, 50.0f, -10.0f);
+	glDisable(GL_DEPTH_TEST);
+	sky->render();
+	glEnable(GL_DEPTH_TEST);
+	Matrix44 planeMatrix = Matrix44();
+	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, a_shader, cam, 20.0f);
+	Matrix44 coliseoMatrix = Matrix44();
+	coliseoMatrix.translate(0.0f, -2.0f, 0.0f);
+	coliseoMatrix.scale(75.0f, 75.0f, 75.0f);
+	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, a_shader, cam);
 	//GUI RENDER
 	
 	// RenderAllGUI
@@ -315,32 +327,36 @@ void IntroStage::render()
 	if (RenderButton(positions[0].x, positions[0].y, 250, 75, a_shader, textures[0], textures_hover[0], Vector4(0, 0, 1, 1)))
 	{
 		Game::instance->scene = GAME;
-		cout << "Let's game" << endl;
+		//cout << "Let's game" << endl;
 	}
 	else if (RenderButton(positions[1].x, positions[1].y, 250, 75, a_shader, textures[1], textures_hover[1], Vector4(0, 0, 1, 1)))
 	{
 		Game::instance->scene = CONTROLS;
-		cout << "Scene change" << endl;
+		//cout << "Scene change" << endl;
 	}
 	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], textures_hover[2], Vector4(0, 0, 1, 1)))
 	{
-		cout << "Bye bye!" << endl;
+	//	cout << "Bye bye!" << endl;
 		Game::instance->must_exit = true;
 	}
+	RenderGUI(positions[3].x, positions[3].y, 805, 100, a_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 
-	//para pintar quad
-	//pasar info al shader
-	//...
-	//hacer draw call
-	//RenderMenuGUI(&quad,shader,Game::instance->camera);
-		
-
-	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
-	Camera* cam = Game::instance->camera;
+
+	//Render background
+
+	//para pintar quad
+	//pasar info al shader
+	//hacer draw call
+	//RenderMenuGUI(&quad,shader,Game::instance->camera);
+		
+	//draw title
+	drawText(75, 50, "Legends of the Colosseum", Vector3(0, 0, 0), 5);
+	
+
 	Camera::current = cam;
 	Game::instance->wasLeftButtonPressed = false;
 	
@@ -349,6 +365,21 @@ void IntroStage::render()
 void IntroStage::update(float elapsed_time)
 {
 	//OPTION SELECTION
+	float speed = elapsed_time * 70.0f; //the speed is defined by the seconds_elapsed so it goes constant
+
+	//example
+
+	//mouse input to rotate the cam
+	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f));
+	
+	if (Input::wasKeyPressed(SDL_SCANCODE_UP)) rotationSpeedIntro += 0.01f;
+	if (Input::wasKeyPressed(SDL_SCANCODE_DOWN)) rotationSpeedIntro -= 0.01f;
+
+	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << "Camera rotation speed = " << rotationSpeedIntro << endl;
+	//async input to move the camera around
+    cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
+
+
 	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) reloadIcons();
 }
 
