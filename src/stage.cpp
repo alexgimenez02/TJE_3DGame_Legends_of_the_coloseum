@@ -190,7 +190,7 @@ void RenderGUI(float x, float y, float w, float h, Shader* a_shader, Texture* te
 
 
 }
-bool RenderButton(float x, float y, float w, float h, Shader* a_shader, Texture* tex,Texture* text_hover, Vector4 tex_range, bool flipUV = false)
+bool RenderButton(float x, float y, float w, float h, Shader* a_shader, Texture* tex,Vector4 tex_range, Texture* text_hover = NULL, bool flipUV = false)
 {
 	Vector2 mouse = Input::mouse_position;
 	float halfWidth = w * 0.5f;
@@ -202,9 +202,14 @@ bool RenderButton(float x, float y, float w, float h, Shader* a_shader, Texture*
 
 
 	bool hover = mouse.x >= min_x && mouse.x <= max_x && mouse.y >= min_y && mouse.y <= max_y;
-	Texture* texture = hover ? text_hover : tex;
-	RenderGUI(x, y, w, h, a_shader, texture, tex_range, Vector4(1,1,1,1), flipUV);
-
+	if (text_hover != NULL) {
+		Texture* texture = hover ? text_hover : tex;
+		RenderGUI(x, y, w, h, a_shader, texture, tex_range, Vector4(1,1,1,1), flipUV);
+	}
+	else {
+		Vector4 color = hover ? Vector4(1, 1, 1, 1) : Vector4(1, 1, 1, 0.7f);
+		RenderGUI(x, y, w, h, a_shader, tex, tex_range, color, flipUV);
+	}
 
 	bool pressed = Game::instance->wasLeftButtonPressed && hover;
 	return pressed;
@@ -265,7 +270,6 @@ void IntroStage::reloadIcons()
 
 void IntroStage::render()
 {
-
 	glDisable(GL_DEPTH_TEST);
 	sky->render();
 	glEnable(GL_DEPTH_TEST);
@@ -276,31 +280,47 @@ void IntroStage::render()
 	coliseoMatrix.scale(75.0f, 75.0f, 75.0f);
 	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, a_shader, cam);
 	//GUI RENDER
-	
+
 	// RenderAllGUI
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	
+
 	//RenderGUI(50,50,100,100,Texture::Get("data/grass.tga"));
-	
-	if (RenderButton(positions[0].x, positions[0].y, 250, 75, a_shader, textures[0], textures_hover[0], Vector4(0, 0, 1, 1)))
+
+	if (RenderButton(positions[0].x, positions[0].y, 250, 75, a_shader, textures[0], Vector4(0, 0, 1, 1), textures_hover[0]))
 	{
 		Game::instance->scene = GAME;
+		DATA load_game = loadGame("data/saveFiles/file1.stats");
+		if (load_game.modified) {
+			Game::instance->game_s->stats = load_game.player_stats;
+			Game::instance->game_s->player->pos = load_game.playerPosition;
+			Game::instance->game_s->player->yaw = load_game.playerYaw;
+		}
+		else{
+			Game::instance->game_s->player->pos = Vector3(30.12f, 0.0f, 16.88f);
+			Game::instance->game_s->player->yaw = -249.8f;
+		}
 		//cout << "Let's game" << endl;
 	}
-	else if (RenderButton(positions[1].x, positions[1].y, 250, 75, a_shader, textures[1], textures_hover[1], Vector4(0, 0, 1, 1)))
+	else if (RenderButton(positions[1].x, positions[1].y, 250, 75, a_shader, textures[1], Vector4(0, 0, 1, 1), textures_hover[1]))
 	{
 		Game::instance->scene = CONTROLS;
 		Game::instance->controls->cam = cam;
 		//cout << "Scene change" << endl;
 	}
-	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], textures_hover[2], Vector4(0, 0, 1, 1)))
+	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], Vector4(0, 0, 1, 1), textures_hover[2]))
 	{
-	//	cout << "Bye bye!" << endl;
+		//	cout << "Bye bye!" << endl;
 		Game::instance->must_exit = true;
+	}
+	if (existsSavedFile("data/saveFiles/file1.stats"))
+	{
+		if (RenderButton(572, 300, 75, 75, a_shader, Texture::Get("data/iconTextures/Delete Button.png"), Vector4(0, 0, 1, 1),Texture::Get("data/iconTextures/Delete hover.png"))) {
+			deleteSavedFile("data/saveFiles/file1.stats");
+		}
 	}
 	RenderGUI(positions[3].x, positions[3].y, 805, 100, a_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 
@@ -314,14 +334,12 @@ void IntroStage::render()
 	//para pintar quad
 	//pasar info al shader
 	//hacer draw call
-	//RenderMenuGUI(&quad,shader,Game::instance->camera);
 		
 	//draw title
 	drawText(75, 50, "Legends of the Colosseum", Vector3(0, 0, 0), 5);
 	
 
 	Camera::current = cam;
-	Game::instance->wasLeftButtonPressed = false;
 	
 }
 
@@ -334,14 +352,14 @@ void IntroStage::update(float elapsed_time)
 
 	//mouse input to rotate the cam
 	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f));
-	
-	if (Input::wasKeyPressed(SDL_SCANCODE_UP)) rotationSpeedIntro += 0.01f;
-	if (Input::wasKeyPressed(SDL_SCANCODE_DOWN)) rotationSpeedIntro -= 0.01f;
 
-	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << "Camera rotation speed = " << rotationSpeedIntro << endl;
+
+	//if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << "Camera rotation speed = " << rotationSpeedIntro << endl;
 	//async input to move the camera around
     cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
-
+	posx = Input::mouse_position.x;
+	posy = Input::mouse_position.y;
+	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << posx << "," << posy << endl;
 
 	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) reloadIcons();
 }
@@ -439,6 +457,8 @@ void ControlsStage::update(float elapsed_time)
 
 void GameStage::render()
 {
+
+
 	//set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -448,6 +468,7 @@ void GameStage::render()
 	glDisable(GL_DEPTH_TEST);
 	sky->render();
 	glEnable(GL_DEPTH_TEST);
+
 	if (!entities.empty())
 	{
 		for (size_t i = 0; i < entities.size(); i++)
@@ -537,8 +558,56 @@ void GameStage::render()
 			RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam);
 		}
 	}
-
 	drawCrosshair();
+#pragma region UI
+	//Render UI player
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	if (!menu) {
+		RenderGUI(209.25 - ((stats.missing_hp * 290) / 2), 45.9, 290 - (stats.missing_hp * 290), 20, gui_shader, textures[1], Vector4(0, 0, 1, 1));
+		RenderGUI(209.25, 45.9, 300, 25, gui_shader, textures[0], Vector4(0, 0, 1, 1));
+	}
+	else {
+		RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+		if (RenderButton(400, 220, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
+			menu = !menu;
+		} //RESUME BUTTON
+		if (RenderButton(400, 307, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
+			//Call save function
+			DATA current_data = {
+				{
+				stats.strength,
+				stats.missing_hp,
+				stats.resistance
+				},
+				player->pos,
+				player->yaw
+			};
+			saveGame("file1",current_data);
+			cout << "Game Saved!" << endl;
+		} //SAVE BUTTON
+		if (RenderButton(400, 393, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
+			Game::instance->scene = INTRO;
+			Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+			menu = false;
+		}//MAIN MENU BUTTON
+		
+		
+		drawText(134, 94, "GAME PAUSED", Vector3(0, 0, 0), 8);
+		drawText(316, 201, "Resume", Vector3(0, 0, 0), 5);
+		drawText(271, 284, "Save game", Vector3(0, 0, 0), 5);
+		drawText(276, 375, "Main Menu", Vector3(0, 0, 0), 5);
+		//drawText(posx, posy, "Save", Vector3(0, 0, 0), 5);
+	}
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+#pragma endregion UI
+
 	Camera::current = cam;
 }
 
@@ -565,8 +634,10 @@ void GameStage::update(float elapsed_time)
 				player->pos = Vector3(-7.60f, 0.0f, 3.58f);
 				player->yaw = -1504.69f;
 			}
-			else player->pos = Vector3(30.12f,0.0f,16.88f);
-			player->yaw = -249.8f;
+			else {
+				player->pos = Vector3(30.12f, 0.0f, 16.88f);
+				player->yaw = -249.8f;
+			}
 			sphereArena = new EntityMesh();
 			sphereTabern = new EntityMesh();
 			sphereArena->mesh = Mesh::Get("data/arrow.obj");
@@ -607,139 +678,146 @@ void GameStage::update(float elapsed_time)
 		}
 		mapSwap = false;
 	}
+	if (!menu) {
 #pragma endregion SCENE_LOADER
 #pragma region PLAYER_MOVEMENT
-	float playerSpeed = 5.0f * elapsed_time;
-	if (Stage_ID == MAP)
-	{
-		Matrix44 playerRotation;
-		playerRotation.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
-		Vector3 playerVel;
-		Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
-		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
-		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
-		weapon.movementMotion = playerVel.x != 0 || playerVel.y != 0 || playerVel.z != 0;
-
-		Vector3 nexPos = player->pos + playerVel;
-		COL_RETURN ret;
-		
-		if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time, 1.5f).colision) {
-			mapSwap = true;
-			previous_stage = Stage_ID;
-			Stage_ID = ARENA;
-		}
-		else if (CheckColision(player->pos, nexPos, sphereTabern, elapsed_time).colision) {
-			mapSwap = true;
-			previous_stage = Stage_ID;
-			Stage_ID = TABERN;
-		}
-		else {
-			for (size_t i = 0; i < entities.size(); i++)
-			{
-				ret = CheckColision(player->pos, nexPos, entities[i], elapsed_time, 1.0f);
-				if (ret.colision) {
-					nexPos = ret.modifiedPosition;
-					break;
-				}
-			}
-			player->pos = nexPos;
-		}
-
-	}
-	else if (Stage_ID == TABERN)
-	{
-		Matrix44 playerRotation;
-		playerRotation.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
-		Vector3 playerVel;
-		Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
-		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
-		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
-
-		Vector3 nexPos = player->pos + playerVel;
-		COL_RETURN ret;
-		for (size_t i = 0; i < entitiesColision.size(); i++)
+		float playerSpeed = 5.0f * elapsed_time;
+		if (Stage_ID == MAP)
 		{
-			ret = CheckColision(player->pos, nexPos, entitiesColision[i], elapsed_time, 0.75f);
-			if (ret.colision) {
-				if (entitiesColision[i]->name._Equal("DOOR.OBJ")) {
-				mapSwap = true;
-					previous_stage = Stage_ID;
-					Stage_ID = MAP;
-				}
-				else {
-					nexPos = ret.modifiedPosition;
-				}
-				break;
-			}
-		}
-		player->pos = nexPos;
-	}
-	else {
-		if (isBattle)
-		{
-			weapon.movementMotion = false;
-			if (currentEnemy->hp > 0) {
-				if (currentEnemy->EmptyAttacks()) {
-					//Wait until hit
-					if (weapon.attacked) {
-						currentEnemy->GenerateAttacks();
-						currentEnemy->hp--;
-						cout << "Enemy current health: " << currentEnemy->hp << endl;
-						weapon.attacked = false;
-					}
-				}
-				else {
-					POSITION nextAttack = currentEnemy->GetNextAttack();
-					//Animaciones enemigo
-					if (nextAttack == UP) {
-						//Animacion up
-						cout << "UP" << endl;
-					}
-					else if (nextAttack == LEFT) {
-						//Animacion left
-						cout << "LEFT" << endl;
-					}
-					else{
-						//Animacion right
-						cout << "RIGHT" << endl;
-					}
-
-				}
-			}
-			else {
-				currentEnemy->enemyEntity->destroy();
-				for (size_t i = 0; i < enemies.size(); i++)
-				{
-					if (enemies[i] == currentEnemy->enemyEntity) {
-						enemies.erase(enemies.begin() + i);
-					}
-				}
-				currentEnemy = NULL;
-				isBattle = false;
-			}
-
-			if (enemies.size() <= 0) {
-				mapSwap = true;
-				previous_stage = Stage_ID;
-				Stage_ID = MAP;
-				
-			}
-		}
-		else {
 			Matrix44 playerRotation;
 			playerRotation.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
 			Vector3 playerVel;
 			Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
 			Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
-		
+			if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
+			if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
+			if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
+			if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
+			if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
+			weapon.movementMotion = playerVel.x != 0 || playerVel.y != 0 || playerVel.z != 0;
+
+			Vector3 nexPos = player->pos + playerVel;
+			COL_RETURN ret;
+
+			if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time, 1.5f).colision) {
+				mapSwap = true;
+				previous_stage = Stage_ID;
+				Stage_ID = ARENA;
+			}
+			else if (CheckColision(player->pos, nexPos, sphereTabern, elapsed_time).colision) {
+				mapSwap = true;
+				previous_stage = Stage_ID;
+				Stage_ID = TABERN;
+			}
+			else {
+				for (size_t i = 0; i < entities.size(); i++)
+				{
+					ret = CheckColision(player->pos, nexPos, entities[i], elapsed_time, 1.0f);
+					if (ret.colision) {
+						nexPos = ret.modifiedPosition;
+						break;
+					}
+				}
+				player->pos = nexPos;
+			}
+
+		}
+		else if (Stage_ID == TABERN)
+		{
+			Matrix44 playerRotation;
+			playerRotation.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
+			Vector3 playerVel;
+			Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
+			Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+			if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
+			if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
+			if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
+			if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
+			if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
+
+			Vector3 nexPos = player->pos + playerVel;
+			COL_RETURN ret;
+			for (size_t i = 0; i < entitiesColision.size(); i++)
+			{
+				ret = CheckColision(player->pos, nexPos, entitiesColision[i], elapsed_time, 0.75f);
+				if (ret.colision) {
+					if (entitiesColision[i]->name._Equal("DOOR.OBJ")) {
+						mapSwap = true;
+						previous_stage = Stage_ID;
+						Stage_ID = MAP;
+					}
+					else {
+						nexPos = ret.modifiedPosition;
+					}
+					break;
+				}
+			}
+			player->pos = nexPos;
+		}
+		else {
+			if (isBattle)
+			{
+				weapon.movementMotion = false;
+				if (currentEnemy->hp > 0) {
+					if (currentEnemy->EmptyAttacks()) {
+						//Wait until hit
+						if (weapon.attacked) {
+							currentEnemy->GenerateAttacks();
+							currentEnemy->hp -= stats.strength;
+							cout << "Enemy current health: " << currentEnemy->hp << endl;
+							weapon.attacked = false;
+						}
+					}
+					else {
+						POSITION nextAttack = currentEnemy->GetNextAttack();
+						//Animaciones enemigo
+						if (nextAttack == UP) {
+							//Animacion up 
+							parried = true;
+							cout << "UP" << endl;
+						}
+						else if (nextAttack == LEFT) {
+							//Animacion left
+							parried = true;
+							cout << "LEFT" << endl;
+						}
+						else {
+							//Animacion right
+							parried = false;
+							cout << "RIGHT" << endl;
+						}
+						if (!parried) {
+							stats.missing_hp += 1 - stats.resistance;
+						}
+						parried = false;
+					}
+				}
+				else {
+					currentEnemy->enemyEntity->destroy();
+					for (size_t i = 0; i < enemies.size(); i++)
+					{
+						if (enemies[i] == currentEnemy->enemyEntity) {
+							enemies.erase(enemies.begin() + i);
+						}
+					}
+					currentEnemy = NULL;
+					isBattle = false;
+				}
+
+				if (enemies.size() <= 0) {
+					mapSwap = true;
+					previous_stage = Stage_ID;
+					Stage_ID = MAP;
+
+				}
+			}
+			else {
+				Matrix44 playerRotation;
+				playerRotation.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
+				Vector3 playerVel;
+				Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
+				Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+
 				if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
 				if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
 				if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
@@ -747,9 +825,9 @@ void GameStage::update(float elapsed_time)
 				if (Input::isKeyPressed(SDL_SCANCODE_D)) playerVel = playerVel - (right * playerSpeed);
 				weapon.movementMotion = playerVel.x != 0 || playerVel.y != 0 || playerVel.z != 0;
 
-		
-			Vector3 nexPos = player->pos + playerVel;
-		
+
+				Vector3 nexPos = player->pos + playerVel;
+
 				COL_RETURN ret;
 				for (size_t i = 0; i < enemies.size(); i++)
 				{
@@ -757,7 +835,7 @@ void GameStage::update(float elapsed_time)
 					if (ret.colision) {
 						nexPos = ret.modifiedPosition;
 						isBattle = true;
-						currentEnemy = new EnemyAI(3, enemies[i], 2);
+						currentEnemy = new EnemyAI(5, enemies[i], 2);
 						currentEnemy->GenerateAttacks();
 						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f); //Center for enemy
 						nexPos = Vector3(51.7f, 0.0f, -21.9f); //Center for player
@@ -766,27 +844,24 @@ void GameStage::update(float elapsed_time)
 						break;
 					}
 				}
-			player->pos = nexPos;
-		}
+				player->pos = nexPos;
+			}
 
-	}
-	if ((Input::mouse_state & SDL_BUTTON_LEFT)) //is left button pressed?
-	{
-		player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
-		SDL_ShowCursor(false);
-		Input::centerMouse();		
+		}
+		if (stats.missing_hp >= 1.0f) {
+			stats.missing_hp = 1.0f;
+			//Game::instance->scene = GAMEOVER;
+		}
 	}
 #pragma endregion PLAYER_MOVEMENT
 
 #pragma region CAMERA_MOVEMENT
-	player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
-	SDL_ShowCursor(false);
-	if(!debug)
+	SDL_ShowCursor(menu);
+	if (!menu) {
+		player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
 		Input::centerMouse();
-
-
+	}
 #pragma endregion CAMERA_MOVEMENT
-
 #pragma region WEAPON_MOVEMENT
 	float weapon_speed = 100.0f;
 	if (weapon.attack)

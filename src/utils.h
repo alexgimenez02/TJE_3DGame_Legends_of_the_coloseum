@@ -7,6 +7,8 @@ using namespace std;
 #include <string>
 #include <sstream>
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 #include "includes.h"
 #include "framework.h"
@@ -31,6 +33,17 @@ struct ICON_POSITION {
 	float x;
 	float y;
 };
+typedef struct PLAYER_STATS {
+	int strength;
+	float missing_hp;
+	float resistance;
+}sSTATS;
+struct DATA {
+	sSTATS player_stats;
+	Vector3 playerPosition;
+	float playerYaw;
+	bool modified = false;
+};
 //General functions **************
 long getTime();
 bool readFile(const std::string& filename, std::string& content);
@@ -38,6 +51,10 @@ bool readFileBin(const std::string& filename, std::vector<unsigned char>& buffer
 vector<string> get_all_files_names_within_folder();
 vector<string> get_all_files_names_within_icons();
 ICON_POSITION readPosition(const char* filename);
+void saveGame(const char* filename, DATA game_data);
+DATA loadGame(const char* filename);
+void deleteSavedFile(const char* filename);
+bool existsSavedFile(const char* filename);
 
 
 //generic purposes fuctions

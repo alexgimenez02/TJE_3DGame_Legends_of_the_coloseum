@@ -200,7 +200,58 @@ ICON_POSITION readPosition(const char* filename)
 	return ret;
 }
 #pragma endregion ICON_POSITION_READER
+#pragma region SAVE_GAME_HANDLER
+void saveGame(const char* filename, DATA game_data)
+{
+	string path = "data/saveFiles/" + string::basic_string(filename) + ".stats";
+	ofstream MyFile(path.c_str());
+	MyFile << "Game: " << endl;
+	MyFile << "STR: " << game_data.player_stats.strength << endl;
+	MyFile << "HP: " << game_data.player_stats.missing_hp << endl;
+	MyFile << "RES: " << game_data.player_stats.resistance << endl;
+	MyFile << "POS: " << game_data.playerPosition.x << " " << game_data.playerPosition.y << " " << game_data.playerPosition.z << endl;
+	MyFile << "YAW: " << game_data.playerYaw;
 
+	MyFile.close();
+}
+DATA loadGame(const char* filename) {
+	TextParser sceneParser = TextParser();
+	DATA ret{ { 0, 0.0f, 0.0f}, Vector3(0.0f,0.0f,0.0f), 0.0f};
+	if (!sceneParser.create(filename)) {
+		ret.modified = false;
+		return ret;
+	}
+	sceneParser.seek("GAME:");
+	while (sceneParser.eof() == 0)
+	{
+		if (sceneParser.getword() == string::basic_string("STR:"))
+			ret.player_stats.strength = sceneParser.getint();
+		if (sceneParser.getword() == string::basic_string("HP:"))
+			ret.player_stats.missing_hp = sceneParser.getfloat();
+		if (sceneParser.getword() == string::basic_string("RES:"))
+			ret.player_stats.resistance = sceneParser.getfloat();
+		if (sceneParser.getword() == string::basic_string("POS:")) {
+			ret.playerPosition.x = sceneParser.getfloat(); 
+			ret.playerPosition.y = sceneParser.getfloat();
+			ret.playerPosition.z = sceneParser.getfloat();
+		}
+		if (sceneParser.getword() == string::basic_string("YAW:"))
+			ret.playerYaw = sceneParser.getfloat();
+	}
+	ret.modified = true;
+	cout << "File loaded correctly!" << endl;
+	return ret;
+}
+void deleteSavedFile(const char* filename) {
+	if (remove(filename) != 0) return;
+	cout << "Game deleted" << endl;
+}
+bool existsSavedFile(const char* filename)
+{
+	TextParser sceneParser = TextParser();
+	return sceneParser.create(filename);
+}
+#pragma endregion SAVE_GAME_HANDLER
 void stdlog(std::string str)
 {
 	std::cout << str << std::endl;
@@ -372,6 +423,8 @@ std::string getGPUStats()
 }
 
 Mesh* grid = NULL;
+
+
 
 void drawGrid()
 {

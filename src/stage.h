@@ -88,11 +88,14 @@ typedef struct WEAPON_STRUCT {
 	bool defence = false; //Defence button pressed
 	bool defMotion = false, defMotionUp = false, defRotation = false; //Different defence action checkers
 	EntityMesh* entity;
+
 }sWeapon;
+
 class GameStage : public Stage
 {
 public:
 	
+	vector<Texture*> textures;
 	sWeapon weapon;
 	EntityMesh* player; //Has no real mesh, just to get the model
 	vector<EntityMesh*> enemies;
@@ -102,9 +105,10 @@ public:
 	EntityMap* terrain;
 	EntityMesh* sphereTabern, *sphereArena;
 	STAGE_ID Stage_ID = MAP, previous_stage = MAP;
-	Shader* shader;
+	Shader* shader, *gui_shader;
+	sSTATS stats;
 	EnemyAI* currentEnemy;
-	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false;
+	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false;
 	float tiling = 20.0f;
 
 	void render();

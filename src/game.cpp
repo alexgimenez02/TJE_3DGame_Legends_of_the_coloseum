@@ -76,7 +76,6 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
-	//Goblin
 	//LoadSceneFile("data/MapJordiAlex.scene");
 	/* { //Sword Mesh
 		sword->mesh = Mesh::Get("data/props/sword.obj");
@@ -94,6 +93,14 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	game_s->terrain->mesh->createPlane(100);
 	game_s->terrain->texture = Texture::Get("data/grass.tga");
 
+	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar_frame.png"));
+	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar.png"));
+
+	game_s->stats = {
+		2,
+		0.0f,
+		0.9f
+	};
 	//Intro Stage Init
 	intro->a_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
 	intro->icons = get_all_files_names_within_icons();
@@ -156,13 +163,10 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	controls->textures.push_back(Texture::Get("data/controlsIconsTextures/box.png"));
 
 	
-	// example of loading Mesh from Mesh Manager
-	//sky.mesh = Mesh::Get("data/cielo.ASE");
-
-	
 	// example of shader loading using the shaders manager
 	game_s->shader = new Shader();
 	game_s->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+	game_s->gui_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
 
 	game_s->sky->shader = game_s->shader;
 	game_s->terrain->shader = game_s->shader;
@@ -194,45 +198,9 @@ void Game::render(void)
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	*/
-   
 	//create model matrix for cube
 	//Camera* cam = Game::instance->camera;
-	/*
-#pragma region RENDERALLGUI
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	Mesh quad;
-
-	quad.createQuad(100, 100, 100, 100, false);
-	Camera cam2D;
-	cam2D.setOrthographic(0, window_width, window_height, 0, -1, 1);
-	Texture* textu = Texture::Get("data/test-tube-held.png");
-	shader->enable();
-	//upload uniforms
-	shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-	shader->setUniform("u_viewprojection", cam2D.viewprojection_matrix);
-	if (textu != NULL) {
-		shader->setUniform("u_texture", textu, 0);
-	}
-
-	shader->setUniform("u_time", time);
-	shader->setUniform("u_model", Matrix44());
-
-	//disable shader
-	//hacer draw call
-	quad.render(GL_TRIANGLES);
-
-	shader->disable();
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glDisable(GL_BLEND);
-#pragma endregion RENDERALLGUI
 	
-	*/
-	/*
 	if (!meshes.empty())
 	{
 		for (size_t i = 0; i < meshes.size(); i++)
@@ -240,10 +208,6 @@ void Game::render(void)
 			//RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
 		}
 	}
-	
-	*/
-	/*
-	
 	Matrix44 playerModel;
 	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
 	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0, 1, 0));
@@ -296,7 +260,7 @@ void Game::render(void)
 	//swap between front buffer and back buffer
 	//drawCrosshair();
 	
-	
+	wasLeftButtonPressed = false;
 	SDL_GL_SwapWindow(this->window);
 }
 //Adding entities
@@ -377,8 +341,14 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 	switch(event.keysym.sym)
 	{
 		case SDLK_ESCAPE:  
-			scene = INTRO;
-			intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0)); 
+			if (current_stage == game_s) {
+				GameStage* stg = (GameStage*)current_stage;
+				stg->menu = !stg->menu;
+			}
+			else{
+				scene = INTRO;
+				intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0)); 
+			}
 			break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
 		case SDLK_F2: 
@@ -513,10 +483,15 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 		if (current_stage == game_s)
 		{
 			GameStage* stg = (GameStage*)current_stage;
-			if (stg->Stage_ID != TABERN) {
-				if(stg->isBattle) stg->weapon.attacked = true;
-				stg->weapon.attack = true; 
-				stg->weapon.down = true;
+			if (stg->menu) {
+				wasLeftButtonPressed = true;
+			}
+			else {
+				if (stg->Stage_ID != TABERN) {
+					if(stg->isBattle) stg->weapon.attacked = true;
+					stg->weapon.attack = true; 
+					stg->weapon.down = true;
+				}
 			}
 
 		}

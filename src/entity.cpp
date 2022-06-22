@@ -22,6 +22,7 @@ Matrix44 Entity::getGlobalMatrix()
 
 void Entity::destroy()
 {
+    this->~Entity();
 }
 
 Vector3 Entity::getPosition()
