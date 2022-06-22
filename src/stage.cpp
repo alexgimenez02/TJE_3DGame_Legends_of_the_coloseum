@@ -8,6 +8,8 @@
 
 GLenum error;
 float rotationSpeedIntro  = 0.55f;
+float posx, posy;
+string text = "Left_arrow";
 
 #pragma region SUPLEMENTARY_FUNCTION
 //Read scene file
@@ -249,50 +251,11 @@ void drawCrosshair()
 
 //IntroStage
 #pragma region COMPLEMENTARY_ICON_FUNCTIONS
-ICON_POSITION IntroStage::readPosition(const char* filename)
-{
-	TextParser sceneParser = TextParser();
-	if (!sceneParser.create(filename)) return ICON_POSITION();
-	cout << "File loaded correctly!" << endl;
-	sceneParser.seek("START");
-	ICON_POSITION ret{ 0.0f, 0.0f };
-	while (sceneParser.eof() == 0)
-	{
-		if (sceneParser.getword() == string::basic_string("X:")) 
-			ret.x = sceneParser.getfloat();
-		if (sceneParser.getword() == string::basic_string("Y:")) 
-			ret.y = sceneParser.getfloat();
-	}
-	return ret;
-}
-
-void IntroStage::savePosition(float x, float y, const char* filename)
-{
-
-	// Create and open a text file
-	string count = to_string(num_iconfiles + 1);
-	string path = "data/icons/" + string::basic_string(filename) + count.c_str() + ".scene";
-	ofstream MyFile(path.c_str());
-
-	// Write to the file
-	MyFile << "START" << endl;
-	MyFile << "X: " << x << " Y: " << y;
-
-	
-	// Close the file
-	MyFile.close();
-	icons = get_all_files_names_within_folder();
-	num_iconfiles = icons.size();
-	for (size_t i = 0; i < num_iconfiles; i++)
-	{
-		positions.push_back(readPosition(icons[i].c_str()));
-	}
-}
 void IntroStage::reloadIcons()
 {
 	icons.clear();
 	positions.clear();
-	icons = get_all_files_names_within_folder();
+	icons = get_all_files_names_within_icons();
 	for (size_t i = 0; i < icons.size(); i++)
 	{
 		positions.push_back(readPosition(icons[i].c_str()));
@@ -302,8 +265,7 @@ void IntroStage::reloadIcons()
 
 void IntroStage::render()
 {
-	
-	//planeMatrix.translate(0.0f, 50.0f, -10.0f);
+
 	glDisable(GL_DEPTH_TEST);
 	sky->render();
 	glEnable(GL_DEPTH_TEST);
@@ -332,6 +294,7 @@ void IntroStage::render()
 	else if (RenderButton(positions[1].x, positions[1].y, 250, 75, a_shader, textures[1], textures_hover[1], Vector4(0, 0, 1, 1)))
 	{
 		Game::instance->scene = CONTROLS;
+		Game::instance->controls->cam = cam;
 		//cout << "Scene change" << endl;
 	}
 	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], textures_hover[2], Vector4(0, 0, 1, 1)))
@@ -384,14 +347,91 @@ void IntroStage::update(float elapsed_time)
 }
 
 //ControlsStage
-
+#pragma region COMPLEMENTARY_ICON_FUNCTIONS
+void ControlsStage::ReloadIcons() {
+	icons.clear();
+	positions.clear();
+	icons = get_all_files_names_within_folder();
+	for (size_t i = 0; i < icons.size(); i++)
+	{
+		positions.push_back(readPosition(icons[i].c_str()));
+	}
+}
+#pragma endregion COMPLEMENTARY_ICON_FUNCTIONS
 void ControlsStage::render()
 {
+
+	glDisable(GL_DEPTH_TEST);
+	sky->render();
+	glEnable(GL_DEPTH_TEST);
+	Matrix44 planeMatrix = Matrix44();
+	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, a_shader, cam, 20.0f);
+	Matrix44 coliseoMatrix = Matrix44();
+	coliseoMatrix.translate(0.0f, -2.0f, 0.0f);
+	coliseoMatrix.scale(75.0f, 75.0f, 75.0f);
+	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, a_shader, cam);
+	
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+	//RenderGUI(50,50,100,100,Texture::Get("data/grass.tga"));
+	RenderGUI(403, 275, 805, 800, a_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+	for (size_t i = 0; i < icons.size(); i++)
+	{
+		RenderGUI(positions[i].x, positions[i].y, 50, 50, a_shader, textures[0], Vector4(0, 0, 1, 1));
+	}
+	float move_mouse_x = 185.85, move_mouse_y = 406.851;
+	
+	RenderGUI(548.3, 259.201, 25, 25, a_shader, Texture::Get("data/controlsIconsTextures/Left_arrow.png"), Vector4(0, 0, 1, 1));
+	RenderGUI(651.697, 259.201, 25, 25, a_shader, Texture::Get("data/controlsIconsTextures/Right_arrow.png"), Vector4(0, 0, 1, 1));
+	RenderGUI(599.898, 259.201, 25, 25, a_shader, Texture::Get("data/controlsIconsTextures/Up_arrow.png"), Vector4(0, 0, 1, 1));
+	RenderGUI((move_mouse_x + sin(2.0f * Game::instance->time) * 25.0f), 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse_icon.png"), Vector4(0, 0, 1, 1));
+	bool click = 1.5f * sin(2.0f * Game::instance->time) > 0;
+	if(!click) RenderGUI(586.699, 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse_icon.png"), Vector4(0, 0, 1, 1));
+	else RenderGUI(586.699, 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse__left_click_icon.png"), Vector4(0, 0, 1, 1));
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+	drawText(300, 70, "Controls", Vector3(0, 0, 0), 5);
+	drawText(112.45f, 130.8f, "Movement:", Vector3(0, 0, 0), 3);
+	drawText(542.6, 130.75, "Actions:", Vector3(0, 0, 0), 3);
+	drawText(127.55, 324.151, "Camera:", Vector3(0, 0, 0), 3);
+	drawText(543.4, 324.151, "Attack:", Vector3(0, 0, 0), 3);
+	drawText(175.8, 194.3, "W", Vector3(0, 0, 0), 3);
+	drawText(177.45, 249.451, "S", Vector3(0, 0, 0), 3);
+	drawText(127.5, 249.451, "A", Vector3(0, 0, 0), 3);
+	drawText(230, 249.451, "D", Vector3(0, 0, 0), 3);
+	drawText(581.749, 197.05, "Esc", Vector3(0, 0, 0), 2.5);
+
 }
 
 void ControlsStage::update(float elapsed_time)
 {
+	//mouse input to rotate the cam
+	float speed = elapsed_time * 70.0f; //the speed is defined by the seconds_elapsed so it goes constant
+
+	//example
+
+	//mouse input to rotate the cam
+	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f));
+
+	if (Input::isKeyPressed(SDL_SCANCODE_UP)) posy -= 50.0f * elapsed_time;
+	if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) posy += 50.0f * elapsed_time;
+	if(Input::isKeyPressed(SDL_SCANCODE_LEFT)) posx -= 50.0f * elapsed_time;
+	if(Input::isKeyPressed(SDL_SCANCODE_RIGHT)) posx += 50.0f * elapsed_time;
+
+	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << "Position: " << posx << ", " << posy << endl;
+	//if (Input::wasKeyPressed(SDL_SCANCODE_RETURN)) cin >> text;
+	//async input to move the camera around
+	cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
+
+	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) ReloadIcons();
 }
+
+
 
 
 

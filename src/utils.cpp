@@ -137,7 +137,7 @@ bool readFileBin(const std::string& filename, std::vector<unsigned char>& buffer
 }
 
 #pragma region FILE_SEARCHER
-vector<string> get_all_files_names_within_folder()
+vector<string> get_all_files_names_within_icons()
 {
 	vector<string> names;
 	LPCWSTR search_path = L"data/icons/*.scene ";
@@ -159,7 +159,47 @@ vector<string> get_all_files_names_within_folder()
 	return names;
 
 }
+vector<string> get_all_files_names_within_folder()
+{
+	vector<string> names;
+	LPCWSTR search_path = L"data/controlsIcons/*.scene ";
+
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = ::FindFirstFile(search_path, &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+				wstring recieve = fd.cFileName;
+				string toAdd(recieve.begin(), recieve.end());
+				names.push_back("data/controlsIcons/" + toAdd);
+			}
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+	}
+	return names;
+
+}
 #pragma endregion FILE_SEARCHER
+#pragma region ICON_POSITION_READER
+ICON_POSITION readPosition(const char* filename)
+{
+	TextParser sceneParser = TextParser();
+	if (!sceneParser.create(filename)) return ICON_POSITION();
+	cout << "File loaded correctly!" << endl;
+	sceneParser.seek("START");
+	ICON_POSITION ret{ 0.0f, 0.0f };
+	while (sceneParser.eof() == 0)
+	{
+		if (sceneParser.getword() == string::basic_string("X:"))
+			ret.x = sceneParser.getfloat();
+		if (sceneParser.getword() == string::basic_string("Y:"))
+			ret.y = sceneParser.getfloat();
+	}
+	return ret;
+}
+#pragma endregion ICON_POSITION_READER
 
 void stdlog(std::string str)
 {

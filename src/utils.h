@@ -27,11 +27,18 @@ enum STAGE
 	GAME = 2,
 	GAMEOVER = 3
 };
+struct ICON_POSITION {
+	float x;
+	float y;
+};
 //General functions **************
 long getTime();
 bool readFile(const std::string& filename, std::string& content);
 bool readFileBin(const std::string& filename, std::vector<unsigned char>& buffer);
 vector<string> get_all_files_names_within_folder();
+vector<string> get_all_files_names_within_icons();
+ICON_POSITION readPosition(const char* filename);
+
 
 //generic purposes fuctions
 void drawGrid();

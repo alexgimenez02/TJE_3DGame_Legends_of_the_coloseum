@@ -29,15 +29,11 @@ public:
 	virtual void update(float elapsed_time) = 0;
 
 };
-struct ICON_POSITION {
-	float x;
-	float y;
-};
+
 class IntroStage : public Stage
 {
 public:
 	Shader* a_shader;
-	Texture* tex;
 	float iconx = 0.0f, icony = 0.0f;
 	int num_iconfiles = 0;
 	vector<string> icons;
@@ -50,8 +46,6 @@ public:
 
 	void render();
 	void update(float elapsed_time);
-	ICON_POSITION readPosition(const char* filename);
-	void savePosition(float x, float y, const char* filename);
 	void reloadIcons();
 
 };
@@ -60,10 +54,22 @@ class ControlsStage : public Stage
 {
 public:
 
+	vector<string> icons;
+	vector<Texture*> textures;
+	vector<ICON_POSITION> positions;
+
+	Shader* a_shader;
+	EntityMap* terrain, * sky;
+	EntityMesh* colosseum;
+	Camera* cam;
+
 	//imagen de fondo + mesh de los controles
 
 	void render();
 	void update(float elapsed_time);
+	void savePosition(float x, float y, const char* filename);
+	void ReloadIcons();
+
 
 };
 

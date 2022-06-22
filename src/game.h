@@ -29,8 +29,13 @@ public:
 	int fps;
 	bool must_exit;
 	bool wasLeftButtonPressed = false;
-	STAGE scene = INTRO;
 
+	STAGE scene = INTRO;
+	Stage* current_stage;
+	IntroStage* intro;
+	ControlsStage* controls;
+	GameStage* game_s;
+	GameOverStage* gameOver;
 	//some vars
 	Camera* camera; //our global camera
 	bool mouse_locked; //tells if the mouse is locked (not seen)
