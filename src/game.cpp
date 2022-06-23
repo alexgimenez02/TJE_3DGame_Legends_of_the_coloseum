@@ -495,7 +495,7 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 			}
 
 		}
-		else if (current_stage == intro)
+		else
 		{
 			wasLeftButtonPressed = true;
 			//cout << "left click" << endl;

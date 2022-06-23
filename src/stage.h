@@ -109,7 +109,7 @@ public:
 	sSTATS stats;
 	EnemyAI* currentEnemy;
 	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false;
-	float tiling = 20.0f;
+	float tiling = 20.0f, waitTime = 0.0f;
 
 	void render();
 	void update(float elapsed_time);
@@ -119,6 +119,12 @@ public:
 class GameOverStage : public Stage
 {
 public:
+	Camera* cam;
+	vector<EntityMesh*> entities, enemies;
+	EntityMap* sky, *terrain;
+	STAGE_ID Stage_ID;
+	Shader* shader, *gui_shader;
+	float tiling = 20.0f;
 
 	//imagen de fondo con texto de gameOver
 	void render();

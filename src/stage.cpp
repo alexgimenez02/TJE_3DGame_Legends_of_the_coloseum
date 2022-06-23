@@ -767,6 +767,13 @@ void GameStage::update(float elapsed_time)
 							cout << "Enemy current health: " << currentEnemy->hp << endl;
 							weapon.attacked = false;
 						}
+						else if (waitTime >= 5.0f) {
+							currentEnemy->GenerateAttacks();
+							waitTime = 0.0f;
+						}
+						else {
+							waitTime += elapsed_time;
+						}
 					}
 					else {
 						POSITION nextAttack = currentEnemy->GetNextAttack();
@@ -835,7 +842,7 @@ void GameStage::update(float elapsed_time)
 					if (ret.colision) {
 						nexPos = ret.modifiedPosition;
 						isBattle = true;
-						currentEnemy = new EnemyAI(5, enemies[i], 2);
+						currentEnemy = new EnemyAI(100, enemies[i], 2);
 						currentEnemy->GenerateAttacks();
 						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f); //Center for enemy
 						nexPos = Vector3(51.7f, 0.0f, -21.9f); //Center for player
@@ -849,8 +856,17 @@ void GameStage::update(float elapsed_time)
 
 		}
 		if (stats.missing_hp >= 1.0f) {
-			stats.missing_hp = 1.0f;
-			//Game::instance->scene = GAMEOVER;
+			
+			Game::instance->gameOver->cam = Game::instance->camera;
+			Game::instance->gameOver->entities = entities;
+			Game::instance->gameOver->enemies = enemies;
+			Game::instance->gameOver->Stage_ID = Stage_ID;
+			Game::instance->gameOver->shader = shader;
+			Game::instance->gameOver->gui_shader = gui_shader;
+			Game::instance->gameOver->sky = sky;
+			Game::instance->gameOver->terrain = terrain;
+			stats.missing_hp = 0.0f;
+			Game::instance->scene = GAMEOVER;
 		}
 	}
 #pragma endregion PLAYER_MOVEMENT
@@ -1009,8 +1025,61 @@ void GameStage::update(float elapsed_time)
 
 void GameOverStage::render()
 {
+	//set the clear color (the background color)
+	//glClearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 0.2f);
+	SDL_ShowCursor(true);
+	// Clear the window and the depth buffer
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	Matrix44 test;
+	test.scale(100, 100, 100);
+	//RenderMeshWithFilter();
+	glDisable(GL_DEPTH_TEST);
+	sky->render();
+	glEnable(GL_DEPTH_TEST);
+
+	if (!entities.empty())
+	{
+		for (size_t i = 0; i < entities.size(); i++)
+			RenderMesh(entities[i]->model, entities[i]->mesh, entities[i]->texture, shader, cam);
+	}
+	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
+	
+	for (size_t i = 0; i < enemies.size(); i++)
+	{
+		Matrix44 enemyModel = Matrix44();
+		enemyModel.translate(enemies[i]->pos.x, enemies[i]->pos.y, enemies[i]->pos.z);
+		enemyModel.scale(enemies[i]->scale, enemies[i]->scale, enemies[i]->scale);
+		enemyModel.rotate(enemies[i]->yaw * DEG2RAD, Vector3(0, 1, 0));
+		enemies[i]->model = enemyModel;
+		RenderMesh(enemyModel, enemies[i]->mesh, enemies[i]->texture, shader, cam);
+	}
+	
+	
+	//GUI RENDER
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	float winWidth, winHeight;
+	winWidth = Game::instance->window_width;
+	winHeight = Game::instance->window_width;
+	float halfWidth = winWidth * 0.5f;
+	float halfHeight = winHeight * 0.5f;
+	RenderGUI(halfWidth, halfHeight, winWidth, winHeight, gui_shader, Texture::Get("data/gray_background.png"), Vector4(1,1,1,1));
+	//RenderGUI(halfWidth, 191.7, winWidth, 100, gui_shader, Texture::Get("data/black_bar.png"), Vector4(1, 1, 1, 1));
+	if (RenderButton(395, 445, 250, 75, shader, Texture::Get("data/iconTextures/Back Button.png"), Vector4(1, 1, 1, 1), Texture::Get("data/iconTextures/Back  hover.png"))) {
+		Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+		Game::instance->scene = INTRO;
+	};
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+	drawText(190.0, 152.15,"YOU DIED!",Vector3(1,0,0),10.0f);
 }
 
 void GameOverStage::update(float elapsed_time)
 {
+
 }
