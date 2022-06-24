@@ -97,9 +97,9 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar.png"));
 
 	game_s->stats = {
-		2,
+		1,
 		0.0f,
-		0.9f
+		0.1f
 	};
 	//Intro Stage Init
 	intro->a_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
@@ -343,7 +343,14 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 		case SDLK_ESCAPE:  
 			if (current_stage == game_s) {
 				GameStage* stg = (GameStage*)current_stage;
-				stg->menu = !stg->menu;
+				if (stg->interaction) {
+					stg->menu = !stg->interaction;
+					stg->interaction = stg->menu;
+					stg->nextText = 0;
+				}
+				else {
+					stg->menu = !stg->menu;
+				}
 			}
 			else{
 				scene = INTRO;

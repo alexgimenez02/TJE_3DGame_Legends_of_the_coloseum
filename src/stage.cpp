@@ -249,7 +249,7 @@ bool CheckRayWithBarman(Camera* cam, EntityMesh* barman)
 	Vector3 rayOrigin = cam->eye;
 	Vector3 pos;
 	Vector3 normal;
-	return barman->mesh->testRayCollision(barman->model, rayOrigin, dir, pos, normal);
+	return barman->mesh->testRayCollision(barman->model, rayOrigin, dir, pos, normal, 3.5f);
 }
 #pragma endregion COLISION
 
@@ -529,18 +529,23 @@ void GameStage::render()
 	swordModel.rotate(weapon.attackMotion * DEG2RAD, Vector3(0, 0, 1));
 	if(Stage_ID != TABERN) RenderMesh(swordModel, weapon.entity->mesh, weapon.entity->texture, shader, cam);
 	if (Stage_ID == MAP) {
-		if (sphereArena) {
-			Matrix44 T;
-			T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
-			sphereArena->model = sphereArena->model * T;
-			RenderMesh(sphereArena->model, sphereArena->mesh, sphereArena->texture, shader, cam);
+		if (list.first || list.third || obj == LVLUP) {
+			if (sphereTabern) {
+				Matrix44 T;
+				T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
+				sphereTabern->model = sphereTabern->model * T;
+				RenderMesh(sphereTabern->model, sphereTabern->mesh, sphereTabern->texture, shader, cam);
+			}
 		}
-		if (sphereTabern) {
-			Matrix44 T;
-			T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
-			sphereTabern->model = sphereTabern->model * T;
-			RenderMesh(sphereTabern->model, sphereTabern->mesh, sphereTabern->texture, shader, cam);
+		else{
+			if (sphereArena) {
+				Matrix44 T;
+				T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
+				sphereArena->model = sphereArena->model * T;
+				RenderMesh(sphereArena->model, sphereArena->mesh, sphereArena->texture, shader, cam);
+			}
 		}
+		
 	}
 	if (Stage_ID == ARENA)
 	{
@@ -575,12 +580,54 @@ void GameStage::render()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	if (obj == TUTORIAL && (list.first || list.second || list.third)) {
-		RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+	if (!menu) {
+		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA)) {
+			if(!interaction) RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+		}
+		if (interaction)
+			RenderGUI(397, 514, 800, 200, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+		if (list.third && interaction && nextText > 0) {
+			if (RenderButton(290, 537, 150, 80, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
+				list.third = false;
+				lvlUpMenu = true;
+				nextText = 0;
+				obj = LVLUP;
+				interaction = false;
+			}
+			if (RenderButton(471, 537, 150, 80, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png")))
+			{
+				nextText = 0;
+				interaction = false;
+			}
+		}
+		if (lvlUpMenu) {
+			RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+			if (stats.strength < 5) {
+				if(RenderButton(200, 230, 100, 100, gui_shader, Texture::Get("data/gameIcons/biceps.png"), Vector4(0, 0, 1, 1)))
+				{ 
+					stats.strength++;
+					lvlUpMenu = false;
+					obj = BATTLE;
+				}
+			}
+			else {
+				RenderGUI(200, 230, 100, 100, gui_shader, Texture::Get("data/gameIcons/biceps.png"), Vector4(0, 0, 1, 1), Vector4(1, 1, 1, 0.7));
+			}
+			if (stats.resistance < 0.5f)
+			{
+				if (RenderButton(200, 370, 100, 100, gui_shader, Texture::Get("data/gameIcons/muscular-torso.png"), Vector4(0, 0, 1, 1)))
+				{
+					stats.resistance += 0.1f;
+					lvlUpMenu = false;
+					obj = BATTLE;
+				}
+			}
+			else {
+				RenderGUI(200, 370, 100, 100, gui_shader, Texture::Get("data/gameIcons/muscular-torso.png"), Vector4(0, 0, 1, 1), Vector4(1, 1, 1, 0.7));
+			}
+			if(stats.missing_hp != 0.0f) stats.missing_hp = 0.0f;
+		}
 	}
-	if (interaction)
-		RenderGUI(397, 514, 800, 200, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
-
 	if (!menu) {
 		RenderGUI(209.25 - ((stats.missing_hp * 290) / 2), 45.9, 290 - (stats.missing_hp * 290), 20, gui_shader, textures[1], Vector4(0, 0, 1, 1));
 		RenderGUI(209.25, 45.9, 300, 25, gui_shader, textures[0], Vector4(0, 0, 1, 1));
@@ -617,36 +664,93 @@ void GameStage::render()
 		drawText(276, 375, "Main Menu", Vector3(0, 0, 0), 5);
 		//drawText(posx, posy, "Save", Vector3(0, 0, 0), 5);
 	}
-	if (obj == TUTORIAL) {
-		if (list.first) {
-			if (Stage_ID == TABERN) {
-				drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
-				if (interaction) {
-					switch (nextText) {
-					case 0:
-						drawText(85, 482, "Welcome to the Arena's town, where powerful\n   warriors go to the arena and their skills", Vector3(0, 0, 0), 2.7);
-						break;
-					case 1:
-						drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
-						break;
-					default:
-						interaction = false;
-						list.second = true;
-						list.first = false;
-						break;
+	if (!menu) {
+		if (obj == TUTORIAL) {
+			if (list.first) {
+				if (Stage_ID == TABERN) {
+					if (interaction) {
+						switch (nextText) {
+						case 0:
+							drawText(85, 482, "Welcome to the Arena's town, where powerful\n   warriors go to the arena and their skills", Vector3(0, 0, 0), 2.7);
+							break;
+						case 1:
+							drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
+							
+							break;
+						default:
+							nextText = 0;
+							interaction = false;
+							list.second = true;
+							list.first = false;
+							break;
+						}
+					}
+					else {
+						drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
 					}
 				}
+				else {
+					drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
+				}
+			}
+			if (list.second) {
+				if (interaction) drawText(165, 495, "GO TO THE ARENA!", Vector3(0, 0, 0), 5);
+				drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
+				if (Stage_ID == ARENA) list.second = false;
+			}
+			if (list.third) {
+				if (Stage_ID == TABERN) {
+					if (interaction) {
+						switch (nextText) {
+						case 0:
+							drawText(97, 504, "Welcome back! Did you enjoy your fights?", Vector3(0, 0, 0), 2.7);
+							break;
+						default:
+							drawText(72, 482, "Do you want to upgrade your stats with a drink?", Vector3(0, 0, 0), 2.5);
+							drawText(271, 530, "Yes", Vector3(0, 0, 0), 2);
+							drawText(459, 530, "No", Vector3(0, 0, 0), 2);
+							break;
+						}
+					}else
+					drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+				}else
+				drawText(424, 52, "Return to the tabern", Vector3(0, 0, 0), 3);
+			}
+		}
+		else if (obj == LVLUP) {
+			if (Stage_ID == TABERN) {
+				if (lvlUpMenu) {
+					drawText(150, 140, "Strength beer", Vector3(0, 0, 0), 3);
+					drawText(150, 290, "Resistance beer", Vector3(0, 0, 0), 3);
+					if (stats.strength < 5) {
+						drawText(300, 216,"Current strength:",Vector3(0,0,0),3);
+						drawText(585, 216,to_string(stats.strength),Vector3(0,0,0),3);
+
+					}
+					else {
+						drawText(345, 216,"Max strength",Vector3(0,0,0),3.5);
+					}
+					if (stats.resistance < 0.5f) {
+						drawText(300, 360,"Current resistance:",Vector3(0,0,0),3);
+						int curr_res = stats.resistance * 10;
+						drawText(607, 360,to_string(curr_res), Vector3(0, 0, 0), 3);
+					}
+					else {
+						drawText(327, 358,"Max resistance",Vector3(0,0,0),3.5);
+					}
+					
+				}
+				else 
+					drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+				
+				
 			}
 			else {
-				drawText(452, 54,"Go to the tabern", Vector3(0,0,0),3);
+				drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
 			}
 		}
-		if (list.second) {
-			drawText(465, 50,"Go to the arena", Vector3(0,0,0),3);
-			if (Stage_ID == ARENA) list.second = false;
-		}
-		if (list.third) {
-			drawText(424, 52,"Return to the tabern", Vector3(0,0,0),3);
+		else {
+			if(Stage_ID != ARENA) drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
 		}
 	}
 
@@ -750,12 +854,12 @@ void GameStage::update(float elapsed_time)
 			Vector3 nexPos = player->pos + playerVel;
 			COL_RETURN ret;
 
-			if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time, 1.5f).colision) {
+			if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time, 1.5f).colision && (list.second || obj == BATTLE)) {
 				mapSwap = true;
 				previous_stage = Stage_ID;
 				Stage_ID = ARENA;
 			}
-			else if (CheckColision(player->pos, nexPos, sphereTabern, elapsed_time).colision) {
+			else if (CheckColision(player->pos, nexPos, sphereTabern, elapsed_time).colision && (list.first || list.third ||obj == LVLUP)) {
 				mapSwap = true;
 				previous_stage = Stage_ID;
 				Stage_ID = TABERN;
@@ -831,23 +935,20 @@ void GameStage::update(float elapsed_time)
 						//Animaciones enemigo
 						if (nextAttack == UP) {
 							//Animacion up 
-							parried = true;
 							cout << "UP" << endl;
 						}
 						else if (nextAttack == LEFT) {
 							//Animacion left
-							parried = true;
 							cout << "LEFT" << endl;
 						}
 						else {
 							//Animacion right
-							parried = false;
 							cout << "RIGHT" << endl;
 						}
 						if (!parried) {
-							stats.missing_hp += 1 - stats.resistance;
+							stats.missing_hp += 1 - (0.4f + stats.resistance);
 						}
-						parried = false;
+						parried = true;
 					}
 				}
 				else {
@@ -865,6 +966,8 @@ void GameStage::update(float elapsed_time)
 				if (enemies.size() <= 0) {
 					mapSwap = true;
 					previous_stage = Stage_ID;
+					if (obj == TUTORIAL) list.third = true;
+					else obj = LVLUP;
 					Stage_ID = MAP;
 
 				}
@@ -893,7 +996,7 @@ void GameStage::update(float elapsed_time)
 					if (ret.colision) {
 						nexPos = ret.modifiedPosition;
 						isBattle = true;
-						currentEnemy = new EnemyAI(100, enemies[i], 2);
+						currentEnemy = new EnemyAI(1, enemies[i], 2);
 						currentEnemy->GenerateAttacks();
 						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f); //Center for enemy
 						nexPos = Vector3(51.7f, 0.0f, -21.9f); //Center for player
@@ -923,18 +1026,23 @@ void GameStage::update(float elapsed_time)
 #pragma endregion PLAYER_MOVEMENT
 
 #pragma region CAMERA_MOVEMENT
-	SDL_ShowCursor(menu);
-	if (!menu) {
-		player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
-		if (!toggle) Input::centerMouse();
-		else SDL_ShowCursor(true);
+	if (lvlUpMenu) {
+		SDL_ShowCursor(true);
 	}
-	if (Input::wasKeyPressed(SDL_SCANCODE_8)) {
-		toggle = !toggle;
+	else {
+		if (interaction || menu) SDL_ShowCursor(true);
+		else SDL_ShowCursor(false);
+	
+		if (menu != !interaction) {
+			player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
+			if (!toggle) Input::centerMouse();
+			else SDL_ShowCursor(true);
+		}
 
 	}
-
+	if (Input::wasKeyPressed(SDL_SCANCODE_8)) toggle = !toggle;
 #pragma endregion CAMERA_MOVEMENT
+
 #pragma region WEAPON_MOVEMENT
 	float weapon_speed = 100.0f;
 	if (weapon.attack)
@@ -1069,13 +1177,15 @@ void GameStage::update(float elapsed_time)
 			else {
 				barTender->yaw -= 90.0f * elapsed_time;
 			}
-			//Check if interaction
-			if (!interaction && Game::instance->wasLeftButtonPressed) {
-				interaction = CheckRayWithBarman(Game::instance->camera, barTender);
-				nextText = 0;
-			}
-			else if (Game::instance->wasLeftButtonPressed) {
-				nextText++;
+			if (!menu) {
+				//Check if interaction
+				if (!interaction && Game::instance->wasLeftButtonPressed) {
+					interaction = CheckRayWithBarman(Game::instance->camera, barTender);
+					nextText = 0;
+				}
+				else if (Game::instance->wasLeftButtonPressed) {
+					nextText++;
+				}
 			}
 		}
 #pragma endregion BARTENDER_BEHAVIOUR
@@ -1144,5 +1254,4 @@ void GameOverStage::render()
 
 void GameOverStage::update(float elapsed_time)
 {
-
 }

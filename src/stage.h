@@ -111,7 +111,7 @@ public:
 	Shader* shader, *gui_shader;
 	sSTATS stats;
 	EnemyAI* currentEnemy;
-	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false, interaction = false;
+	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false, interaction = false, lvlUpMenu = false;
 	int nextText = 0;
 	float tiling = 20.0f, waitTime = 0.0f;
 
