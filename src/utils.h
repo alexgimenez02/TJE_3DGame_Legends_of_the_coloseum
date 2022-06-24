@@ -29,6 +29,16 @@ enum STAGE
 	GAME = 2,
 	GAMEOVER = 3
 };
+enum STAGE_ID {
+	MAP = 0,
+	TABERN = 1,
+	ARENA = 2
+};
+enum OBJECTIVE {
+	TUTORIAL = 0,
+	LVLUP = 1,
+	BATTLE = 2
+};
 struct ICON_POSITION {
 	float x;
 	float y;
@@ -42,6 +52,7 @@ struct DATA {
 	sSTATS player_stats;
 	Vector3 playerPosition;
 	float playerYaw;
+	STAGE_ID curr_stage;
 	bool modified = false;
 };
 //General functions **************

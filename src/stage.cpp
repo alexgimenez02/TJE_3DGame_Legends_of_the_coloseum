@@ -8,7 +8,7 @@
 
 GLenum error;
 float rotationSpeedIntro  = 0.55f;
-float posx, posy;
+float posx, posy, posz;
 string text = "Left_arrow";
 
 #pragma region SUPLEMENTARY_FUNCTION
@@ -240,6 +240,16 @@ COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float e
 	ret.colision = true;
 	ret.modifiedPosition = nexPos;
 	return ret;
+}
+bool CheckRayWithBarman(Camera* cam, EntityMesh* barman)
+{
+	Vector2 mouse = Input::mouse_position;
+	Game* g = Game::instance;
+	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, g->window_width, g->window_height);
+	Vector3 rayOrigin = cam->eye;
+	Vector3 pos;
+	Vector3 normal;
+	return barman->mesh->testRayCollision(barman->model, rayOrigin, dir, pos, normal);
 }
 #pragma endregion COLISION
 
@@ -532,7 +542,6 @@ void GameStage::render()
 			RenderMesh(sphereTabern->model, sphereTabern->mesh, sphereTabern->texture, shader, cam);
 		}
 	}
-	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
 	if (Stage_ID == ARENA)
 	{
 		for (size_t i = 0; i < enemies.size(); i++)
@@ -540,7 +549,6 @@ void GameStage::render()
 			Matrix44 enemyModel = Matrix44();
 			enemyModel.translate(enemies[i]->pos.x, enemies[i]->pos.y, enemies[i]->pos.z);
 			enemyModel.scale(enemies[i]->scale, enemies[i]->scale, enemies[i]->scale);
-			//float ang = acos(clamp(enemyModel.frontVector().normalize().dot(to_target.normalize()), -1.0f, 1.0f));
 			enemyModel.rotate(enemies[i]->yaw * DEG2RAD, Vector3(0, 1, 0));
 			enemies[i]->model = enemyModel;
 			RenderMesh(enemyModel, enemies[i]->mesh, enemies[i]->texture, shader, cam);
@@ -558,6 +566,7 @@ void GameStage::render()
 			RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam);
 		}
 	}
+	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
 	drawCrosshair();
 #pragma region UI
 	//Render UI player
@@ -565,6 +574,12 @@ void GameStage::render()
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	if (obj == TUTORIAL && (list.first || list.second || list.third)) {
+		RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+	}
+	if (interaction)
+		RenderGUI(397, 514, 800, 200, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 
 	if (!menu) {
 		RenderGUI(209.25 - ((stats.missing_hp * 290) / 2), 45.9, 290 - (stats.missing_hp * 290), 20, gui_shader, textures[1], Vector4(0, 0, 1, 1));
@@ -584,7 +599,8 @@ void GameStage::render()
 				stats.resistance
 				},
 				player->pos,
-				player->yaw
+				player->yaw,
+				Stage_ID
 			};
 			saveGame("file1",current_data);
 			cout << "Game Saved!" << endl;
@@ -595,24 +611,57 @@ void GameStage::render()
 			menu = false;
 		}//MAIN MENU BUTTON
 		
-		
 		drawText(134, 94, "GAME PAUSED", Vector3(0, 0, 0), 8);
 		drawText(316, 201, "Resume", Vector3(0, 0, 0), 5);
 		drawText(271, 284, "Save game", Vector3(0, 0, 0), 5);
 		drawText(276, 375, "Main Menu", Vector3(0, 0, 0), 5);
 		//drawText(posx, posy, "Save", Vector3(0, 0, 0), 5);
 	}
+	if (obj == TUTORIAL) {
+		if (list.first) {
+			if (Stage_ID == TABERN) {
+				drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+				if (interaction) {
+					switch (nextText) {
+					case 0:
+						drawText(85, 482, "Welcome to the Arena's town, where powerful\n   warriors go to the arena and their skills", Vector3(0, 0, 0), 2.7);
+						break;
+					case 1:
+						drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
+						break;
+					default:
+						interaction = false;
+						list.second = true;
+						list.first = false;
+						break;
+					}
+				}
+			}
+			else {
+				drawText(452, 54,"Go to the tabern", Vector3(0,0,0),3);
+			}
+		}
+		if (list.second) {
+			drawText(465, 50,"Go to the arena", Vector3(0,0,0),3);
+			if (Stage_ID == ARENA) list.second = false;
+		}
+		if (list.third) {
+			drawText(424, 52,"Return to the tabern", Vector3(0,0,0),3);
+		}
+	}
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 #pragma endregion UI
-
 	Camera::current = cam;
 }
 
 void GameStage::update(float elapsed_time)
 {
+	posx = Input::mouse_position.x;
+	posy = Input::mouse_position.y;
+	if (Input::isKeyPressed(SDL_SCANCODE_9)) cout << posx << "," << posy << endl;
 #pragma region SCENE_LOADER
 	if (mapSwap)
 	{
@@ -644,11 +693,13 @@ void GameStage::update(float elapsed_time)
 			sphereArena->texture = Texture::Get("data/arrow.png");
 			sphereArena->model = Matrix44();
 			sphereArena->model.translate(0.57f, 0.25f, -12.66f);
+			sphereArena->pos = Vector3(0.57f, 0.25f, -12.66f);
 			//sphereArena->model.scale(0.5f,0.5f,0.5f);
 			sphereTabern->mesh = Mesh::Get("data/arrow.obj");
 			sphereTabern->texture = Texture::Get("data/arrow.png");
 			sphereTabern->model = Matrix44();
 			sphereTabern->model.translate(-11.005f, 0.25f, 2.67f);
+			sphereTabern->pos = Vector3(-11.005f, 0.25f, 2.67f);
 			//sphereTabern->model.scale(0.5f, 0.5f, 0.5f);
 			Sleep(250);
 			break;
@@ -875,8 +926,14 @@ void GameStage::update(float elapsed_time)
 	SDL_ShowCursor(menu);
 	if (!menu) {
 		player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
-		Input::centerMouse();
+		if (!toggle) Input::centerMouse();
+		else SDL_ShowCursor(true);
 	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_8)) {
+		toggle = !toggle;
+
+	}
+
 #pragma endregion CAMERA_MOVEMENT
 #pragma region WEAPON_MOVEMENT
 	float weapon_speed = 100.0f;
@@ -995,8 +1052,6 @@ void GameStage::update(float elapsed_time)
 				else{
 					enemies[i]->yaw -= 90.0f * elapsed_time;
 				}
-		
-
 			}
 		}
 #pragma endregion ENEMY_BEHAVIOUR
@@ -1014,6 +1069,14 @@ void GameStage::update(float elapsed_time)
 			else {
 				barTender->yaw -= 90.0f * elapsed_time;
 			}
+			//Check if interaction
+			if (!interaction && Game::instance->wasLeftButtonPressed) {
+				interaction = CheckRayWithBarman(Game::instance->camera, barTender);
+				nextText = 0;
+			}
+			else if (Game::instance->wasLeftButtonPressed) {
+				nextText++;
+			}
 		}
 #pragma endregion BARTENDER_BEHAVIOUR
 
@@ -1026,37 +1089,37 @@ void GameStage::update(float elapsed_time)
 void GameOverStage::render()
 {
 	//set the clear color (the background color)
-	//glClearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 0.2f);
 	SDL_ShowCursor(true);
 	// Clear the window and the depth buffer
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	Matrix44 test;
-	test.scale(100, 100, 100);
-	//RenderMeshWithFilter();
+
 	glDisable(GL_DEPTH_TEST);
 	sky->render();
 	glEnable(GL_DEPTH_TEST);
 
 	if (!entities.empty())
 	{
-		for (size_t i = 0; i < entities.size(); i++)
+		for (size_t i = 0; i < entities.size(); i++) {
 			RenderMesh(entities[i]->model, entities[i]->mesh, entities[i]->texture, shader, cam);
+		}
 	}
 	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
-	
-	for (size_t i = 0; i < enemies.size(); i++)
+
+	if (!enemies.empty())
 	{
-		Matrix44 enemyModel = Matrix44();
-		enemyModel.translate(enemies[i]->pos.x, enemies[i]->pos.y, enemies[i]->pos.z);
-		enemyModel.scale(enemies[i]->scale, enemies[i]->scale, enemies[i]->scale);
-		enemyModel.rotate(enemies[i]->yaw * DEG2RAD, Vector3(0, 1, 0));
-		enemies[i]->model = enemyModel;
-		RenderMesh(enemyModel, enemies[i]->mesh, enemies[i]->texture, shader, cam);
+		for (size_t i = 0; i < enemies.size(); i++)
+		{
+			Matrix44 enemyModel = Matrix44();
+			enemyModel.translate(enemies[i]->pos.x, enemies[i]->pos.y, enemies[i]->pos.z);
+			enemyModel.scale(enemies[i]->scale, enemies[i]->scale, enemies[i]->scale);
+			enemyModel.rotate(enemies[i]->yaw * DEG2RAD, Vector3(0, 1, 0));
+			enemies[i]->model = enemyModel;
+			RenderMesh(enemyModel, enemies[i]->mesh, enemies[i]->texture, shader, cam);
+		}
 	}
-	
-	
+
 	//GUI RENDER
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
@@ -1068,11 +1131,11 @@ void GameOverStage::render()
 	float halfWidth = winWidth * 0.5f;
 	float halfHeight = winHeight * 0.5f;
 	RenderGUI(halfWidth, halfHeight, winWidth, winHeight, gui_shader, Texture::Get("data/gray_background.png"), Vector4(1,1,1,1));
-	//RenderGUI(halfWidth, 191.7, winWidth, 100, gui_shader, Texture::Get("data/black_bar.png"), Vector4(1, 1, 1, 1));
+	RenderGUI(halfWidth, 191.7, winWidth, 100, gui_shader, Texture::Get("data/black_bar.png"), Vector4(1, 1, 1, 1));
 	if (RenderButton(395, 445, 250, 75, shader, Texture::Get("data/iconTextures/Back Button.png"), Vector4(1, 1, 1, 1), Texture::Get("data/iconTextures/Back  hover.png"))) {
 		Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
 		Game::instance->scene = INTRO;
-	};
+	}
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);

@@ -211,6 +211,7 @@ void saveGame(const char* filename, DATA game_data)
 	MyFile << "RES: " << game_data.player_stats.resistance << endl;
 	MyFile << "POS: " << game_data.playerPosition.x << " " << game_data.playerPosition.y << " " << game_data.playerPosition.z << endl;
 	MyFile << "YAW: " << game_data.playerYaw;
+	MyFile << "STAGE: " << game_data.curr_stage;
 
 	MyFile.close();
 }
@@ -237,6 +238,8 @@ DATA loadGame(const char* filename) {
 		}
 		if (sceneParser.getword() == string::basic_string("YAW:"))
 			ret.playerYaw = sceneParser.getfloat();
+		if (sceneParser.getword() == string::basic_string("STAGE:"))
+			ret.curr_stage = (STAGE_ID) sceneParser.getint();
 	}
 	ret.modified = true;
 	cout << "File loaded correctly!" << endl;

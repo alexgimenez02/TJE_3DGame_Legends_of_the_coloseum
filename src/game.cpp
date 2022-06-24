@@ -492,6 +492,9 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 					stg->weapon.attack = true; 
 					stg->weapon.down = true;
 				}
+				else {
+					wasLeftButtonPressed = true;
+				}
 			}
 
 		}

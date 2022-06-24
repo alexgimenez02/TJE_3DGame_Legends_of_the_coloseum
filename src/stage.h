@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "entity.h"
 #include "extra/textparser.h"
+#include "fbo.h"
 #include "enemyAI.h"
 
 
@@ -72,12 +73,6 @@ public:
 
 
 };
-
-enum STAGE_ID {
-	MAP = 0,
-	TABERN = 1,
-	ARENA = 2
-};
 typedef struct WEAPON_STRUCT {
 	Vector3 weaponOffset = Vector3(-0.15f, 0.25f, 0.4f);
 	float attackMotion = 0.0f;
@@ -90,16 +85,24 @@ typedef struct WEAPON_STRUCT {
 	EntityMesh* entity;
 
 }sWeapon;
-
+typedef struct CHECK_LIST {
+	bool first = true;
+	bool second = false;
+	bool third = false;
+};
 class GameStage : public Stage
 {
 public:
 	
+	bool toggle = false;
+	CHECK_LIST list;
+	OBJECTIVE obj = TUTORIAL; 
 	vector<Texture*> textures;
 	sWeapon weapon;
 	EntityMesh* player; //Has no real mesh, just to get the model
 	vector<EntityMesh*> enemies;
 	vector<EntityMesh*> entities, entitiesColision;
+	EntityMesh* UIArrow;
 	EntityMesh* barTender;
 	EntityMap* sky;
 	EntityMap* terrain;
@@ -108,7 +111,8 @@ public:
 	Shader* shader, *gui_shader;
 	sSTATS stats;
 	EnemyAI* currentEnemy;
-	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false;
+	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false, interaction = false;
+	int nextText = 0;
 	float tiling = 20.0f, waitTime = 0.0f;
 
 	void render();
