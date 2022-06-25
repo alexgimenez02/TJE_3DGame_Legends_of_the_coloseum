@@ -61,11 +61,14 @@ bool readFile(const std::string& filename, std::string& content);
 bool readFileBin(const std::string& filename, std::vector<unsigned char>& buffer);
 vector<string> get_all_files_names_within_folder();
 vector<string> get_all_files_names_within_icons();
+vector<string> get_all_audio_files();
+vector<string> get_all_song_files();
 ICON_POSITION readPosition(const char* filename);
 void saveGame(const char* filename, DATA game_data);
 DATA loadGame(const char* filename);
 void deleteSavedFile(const char* filename);
 bool existsSavedFile(const char* filename);
+void PlayGameSound(const char* filename, bool restart);
 
 
 //generic purposes fuctions

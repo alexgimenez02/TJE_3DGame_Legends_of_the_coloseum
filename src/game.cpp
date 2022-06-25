@@ -8,6 +8,7 @@
 #include "animation.h"
 #include <Windows.h>
 #include "extra/textparser.h"
+#include <bass.h>
 #include <cmath>
 
 //some globals
@@ -25,8 +26,6 @@ bool defMotion = false, defMotionUp = false, defRotation = false;
 float colisionRadius = 2.0f, attackMotion = 0.0f, defenceMotion = 0.0f, defenceMotionUp = 0.0f, defenceRotation = 0.0f;
 POSITION defType = NONE;
 
-
-
 bool meshSwap = false;
 int currMeshIdx = 0;
 vector<string> meshnames, texnames;
@@ -42,6 +41,7 @@ Texture* groundTex;
 vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
 EntityMesh* SelectedEntity;
+
 bool mapSwap = false;
 
 
@@ -63,6 +63,37 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
 	glEnable( GL_DEPTH_TEST ); //check the occlusions using the Z buffer
 
+	//gameAudio = new Audio();
+	//gameAudio = Audio::Get("");
+	audios = get_all_audio_files(); 
+	/*
+	0, 1, 2 -> sword clash
+	3 -> 7 -> damage soundEffect
+	*/
+	songs = get_all_song_files();
+	/*
+	0 -> Coliseum
+	1 -> Intro+Controls
+	2 -> Map
+	3 -> Tabern
+	*/
+	//gameAudio->Play("data/audio/Coliseum OST.wav",0);
+	if (BASS_Init(-1, 44100, 0, 0, NULL) == false) //-1 significa usar el por defecto del sistema operativo
+	{
+		//error abriendo la tarjeta de sonido...
+		cout << "Error initializing output" << endl;
+	}
+	current_song = songs[1];
+	currentSound = BASS_SampleLoad(false, current_song.c_str(), 0, 0, 3, 0);
+	if (currentSound == 0) {
+		cout << "Error audio not found!" << endl;
+	}
+	currentChannel = BASS_SampleGetChannel(currentSound, false);
+
+	BASS_ChannelPlay(currentChannel, true);
+	//current_song = songs[1];
+	//PlayGameSound(current_song.c_str(), true);
+	
 	intro = new IntroStage();
 	controls = new ControlsStage();
 	game_s = new GameStage();
@@ -77,11 +108,6 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
 	//LoadSceneFile("data/MapJordiAlex.scene");
-	/* { //Sword Mesh
-		sword->mesh = Mesh::Get("data/props/sword.obj");
-		sword->texture = Texture::Get("data/textures/sword.png");
-		sword->model.scale(1.0f / 20.0f, 1.0f / 20.0f, 1.0f / 20.0f);
-	}*/
 	
 	//Game Stage Init
 	game_s->sky = new EntityMap();
@@ -259,7 +285,6 @@ void Game::render(void)
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	//swap between front buffer and back buffer
 	//drawCrosshair();
-	
 	wasLeftButtonPressed = false;
 	SDL_GL_SwapWindow(this->window);
 }
@@ -320,7 +345,16 @@ void Game::update(double seconds_elapsed)
 	{
 	case INTRO:
 		current_stage = intro;
-		
+		if (current_song != songs[1]) {
+			Audio::Stop(currentChannel);
+			current_song = songs[1];
+			currentSound = BASS_SampleLoad(false, current_song.c_str(), 0, 0, 3, 0);
+			if (currentSound == 0) {
+				cout << "Error audio not found!" << endl;
+			}
+			currentChannel = BASS_SampleGetChannel(currentSound, false);
+			BASS_ChannelPlay(currentChannel, true);
+		}
 		SDL_ShowCursor(true);
 		break;
 	case CONTROLS:
@@ -328,9 +362,58 @@ void Game::update(double seconds_elapsed)
 		break;
 	case GAME:
 		current_stage = game_s;
+		if (current_song == songs[1])
+		{
+			Audio::Stop(currentChannel);
+			current_song = songs[2];
+			currentSound = BASS_SampleLoad(false, current_song.c_str(), 0, 0, 3, 0);
+			if (currentSound == 0) {
+				cout << "Error audio not found!" << endl;
+			}
+			currentChannel = BASS_SampleGetChannel(currentSound, false);
+			BASS_ChannelPlay(currentChannel, true);
+		}
+		else {
+			bool changeSound = false;
+			switch (game_s->Stage_ID) {
+			case MAP:
+				if (current_song != songs[2]) {
+					current_song = songs[2];
+					changeSound = true;
+				}
+				break;
+			case ARENA:
+				if (current_song != songs[0]) {
+					current_song = songs[0];
+					changeSound = true;
+				}
+				break;
+			case TABERN:
+				if (current_song != songs[3]) {
+					current_song = songs[3];
+					changeSound = true;
+				}
+				break;
+			
+			}
+			if (changeSound) {
+				Audio::Stop(currentChannel);
+				currentSound = BASS_SampleLoad(false, current_song.c_str(), 0, 0, 3, 0);
+				if (currentSound == 0) {
+					cout << "Error audio not found!" << endl;
+				}
+				currentChannel = BASS_SampleGetChannel(currentSound, false);
+				BASS_ChannelPlay(currentChannel, true);
+			}
+			break;
+		}
+		
 		break;
 	case GAMEOVER:
 		current_stage = gameOver;
+		/*
+		Game over song
+		*/
 		break;
 	}
 }

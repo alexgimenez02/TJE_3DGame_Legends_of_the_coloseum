@@ -181,6 +181,48 @@ vector<string> get_all_files_names_within_folder()
 	return names;
 
 }
+vector<string> get_all_song_files()
+{
+	vector<string> names;
+	LPCWSTR search_path = L"data/audio/Songs/*.WAV ";
+
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = ::FindFirstFile(search_path, &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+				wstring recieve = fd.cFileName;
+				string toAdd(recieve.begin(), recieve.end());
+				names.push_back("data/audio/Songs/" + toAdd);
+			}
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+	}
+	return names;
+}
+vector<string> get_all_audio_files()
+{
+	vector<string> names;
+	LPCWSTR search_path = L"data/audio/SoundEffects/*.WAV ";
+
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = ::FindFirstFile(search_path, &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+				wstring recieve = fd.cFileName;
+				string toAdd(recieve.begin(), recieve.end());
+				names.push_back("data/audio/SoundEffects/" + toAdd);
+			}
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+	}
+	return names;
+}
 #pragma endregion FILE_SEARCHER
 #pragma region ICON_POSITION_READER
 ICON_POSITION readPosition(const char* filename)
@@ -255,10 +297,32 @@ bool existsSavedFile(const char* filename)
 	return sceneParser.create(filename);
 }
 #pragma endregion SAVE_GAME_HANDLER
+#pragma region AUDIO_HANDLER
+void PlayGameSound(const char* filename, bool restart) {
+
+
+	Audio* current_audio = Audio::Get(filename);
+
+	HSAMPLE hSample = current_audio->LoadSample(filename);
+
+
+	//El handler para un canal
+	HCHANNEL hSampleChannel;
+	// Creamos un canal para el sample
+	hSampleChannel = BASS_SampleGetChannel(hSample, false);
+
+	// Lanzamos un sample
+	BASS_ChannelPlay(hSampleChannel, restart);
+}
+#pragma endregion AUDIO_HANDLER
 void stdlog(std::string str)
 {
 	std::cout << str << std::endl;
 }
+
+
+
+
 
 bool checkGLErrors()
 {

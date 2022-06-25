@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "entity.h"
 #include "stage.h"
+#include "audio.h"
 
 
 class Game
@@ -29,7 +30,11 @@ public:
 	int fps;
 	bool must_exit;
 	bool wasLeftButtonPressed = false;
-
+	vector<string> audios, songs;
+	string current_song;
+	HSAMPLE currentSound;
+	DWORD currentChannel;
+	
 	STAGE scene = INTRO;
 	Stage* current_stage;
 	IntroStage* intro;

@@ -280,6 +280,7 @@ void IntroStage::reloadIcons()
 
 void IntroStage::render()
 {
+
 	glDisable(GL_DEPTH_TEST);
 	sky->render();
 	glEnable(GL_DEPTH_TEST);
@@ -945,9 +946,41 @@ void GameStage::update(float elapsed_time)
 							//Animacion right
 							cout << "RIGHT" << endl;
 						}
-						if (!parried) {
-							stats.missing_hp += 1 - (0.4f + stats.resistance);
+						if (curr_SFX_channel != 0) 
+							Audio::Stop(curr_SFX_channel);
+					
+						switch (nextAttack) {
+						case UP:
+								
+							if(parried) currentSFX = BASS_SampleLoad(false, Game::instance->audios[0].c_str(), 0, 0, 3, 0);
+							else currentSFX = BASS_SampleLoad(false, Game::instance->audios[3].c_str(), 0, 0, 3, 0);
+							if (currentSFX == 0) {
+								cout << "Error audio not found!" << endl;
+							}
+							curr_SFX_channel = BASS_SampleGetChannel(currentSFX, false);
+
+							break;
+						case LEFT:
+							if (parried) currentSFX = BASS_SampleLoad(false, Game::instance->audios[1].c_str(), 0, 0, 3, 0);
+							else currentSFX = BASS_SampleLoad(false, Game::instance->audios[4].c_str(), 0, 0, 3, 0);
+							if (currentSFX == 0) {
+								cout << "Error audio not found!" << endl;
+							}
+							curr_SFX_channel = BASS_SampleGetChannel(currentSFX, false);
+							break;
+						case RIGHT:
+							if (parried) currentSFX = BASS_SampleLoad(false, Game::instance->audios[2].c_str(), 0, 0, 3, 0);
+							else currentSFX = BASS_SampleLoad(false, Game::instance->audios[5].c_str(), 0, 0, 3, 0);
+							if (currentSFX == 0) {
+								cout << "Error audio not found!" << endl;
+							}
+							curr_SFX_channel = BASS_SampleGetChannel(currentSFX, false);
+							break;
+
 						}
+						if(!parried) stats.missing_hp += 1 - (0.4f + stats.resistance);
+						
+						BASS_ChannelPlay(curr_SFX_channel, false);
 						parried = true;
 					}
 				}
