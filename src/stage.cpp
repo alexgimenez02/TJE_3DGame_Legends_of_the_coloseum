@@ -231,7 +231,6 @@ COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float e
 		return ret;
 	}
 
-	if(radius == 0.75f) cout << "Colision!" << endl;
 	Vector3 push_away = normalize(coll - character_center) * elapsed_time;
 	nexPos = (pos - push_away); //move to previous pos but a little bit further
 	//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
@@ -309,6 +308,7 @@ void IntroStage::render()
 			Game::instance->game_s->stats = load_game.player_stats;
 			Game::instance->game_s->player->pos = load_game.playerPosition;
 			Game::instance->game_s->player->yaw = load_game.playerYaw;
+			Game::instance->game_s->Stage_ID = load_game.curr_stage;
 		}
 		else{
 			Game::instance->game_s->player->pos = Vector3(30.12f, 0.0f, 16.88f);
@@ -320,11 +320,9 @@ void IntroStage::render()
 	{
 		Game::instance->scene = CONTROLS;
 		Game::instance->controls->cam = cam;
-		//cout << "Scene change" << endl;
 	}
 	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], Vector4(0, 0, 1, 1), textures_hover[2]))
 	{
-		//	cout << "Bye bye!" << endl;
 		Game::instance->must_exit = true;
 	}
 	if (existsSavedFile("data/saveFiles/file1.stats"))
@@ -339,13 +337,6 @@ void IntroStage::render()
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
-
-	//Render background
-
-	//para pintar quad
-	//pasar info al shader
-	//hacer draw call
-		
 	//draw title
 	drawText(75, 50, "Legends of the Colosseum", Vector3(0, 0, 0), 5);
 	
@@ -469,7 +460,6 @@ void ControlsStage::update(float elapsed_time)
 void GameStage::render()
 {
 
-
 	//set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -582,7 +572,7 @@ void GameStage::render()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if (!menu) {
-		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA)) {
+		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA) || (obj == LVLUP && Stage_ID != ARENA)) {
 			if(!interaction) RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 		}
 		if (interaction)
@@ -601,6 +591,7 @@ void GameStage::render()
 				interaction = false;
 			}
 		}
+		//lvl up menu
 		if (lvlUpMenu) {
 			RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 			if (stats.strength < 5) {
@@ -635,9 +626,10 @@ void GameStage::render()
 	}
 	else {
 		RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+		//RESUME BUTTON
 		if (RenderButton(400, 220, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			menu = !menu;
-		} //RESUME BUTTON
+		} //SAVE BUTTON
 		if (RenderButton(400, 307, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			//Call save function
 			DATA current_data = {
@@ -652,12 +644,17 @@ void GameStage::render()
 			};
 			saveGame("file1",current_data);
 			cout << "Game Saved!" << endl;
-		} //SAVE BUTTON
+		} //MAIN MENU BUTTON
 		if (RenderButton(400, 393, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			Game::instance->scene = INTRO;
 			Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+			if (!existsSavedFile("data/saveFiles/file1.stats")) {
+				Game::instance->game_s->Stage_ID = MAP;
+
+			}
+			mapSwap = true;
 			menu = false;
-		}//MAIN MENU BUTTON
+		}
 		
 		drawText(134, 94, "GAME PAUSED", Vector3(0, 0, 0), 8);
 		drawText(316, 201, "Resume", Vector3(0, 0, 0), 5);
@@ -672,7 +669,7 @@ void GameStage::render()
 					if (interaction) {
 						switch (nextText) {
 						case 0:
-							drawText(85, 482, "Welcome to the Arena's town, where powerful\n   warriors go to the arena and their skills", Vector3(0, 0, 0), 2.7);
+							drawText(85, 482, "Welcome to the Arena's town, where powerful\nwarriors go to the arena and test their skills", Vector3(0, 0, 0), 2.5);
 							break;
 						case 1:
 							drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
@@ -695,10 +692,17 @@ void GameStage::render()
 				}
 			}
 			if (list.second) {
-				if (interaction) drawText(165, 495, "GO TO THE ARENA!", Vector3(0, 0, 0), 5);
-				drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
+				if (interaction) {
+					drawText(165, 495, "GO TO THE ARENA!", Vector3(0, 0, 0), 5);
+					if (nextText > 0) {
+						interaction = false;
+						nextText = 0;
+					}
+				}
+				else drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
 				if (Stage_ID == ARENA) list.second = false;
 			}
+		
 			if (list.third) {
 				if (Stage_ID == TABERN) {
 					if (interaction) {
@@ -719,7 +723,21 @@ void GameStage::render()
 			}
 		}
 		else if (obj == LVLUP) {
-			if (Stage_ID == TABERN) {
+			if (Stage_ID == TABERN) {				
+				if (interaction) {
+					switch (nextText) {
+					case 0:
+						drawText(97, 504, "Welcome back! Did you enjoy your fights?", Vector3(0, 0, 0), 2.7);
+						break;
+					default:
+						drawText(72, 482, "Do you want to upgrade your stats with a drink?", Vector3(0, 0, 0), 2.5);
+						drawText(271, 530, "Yes", Vector3(0, 0, 0), 2);
+						drawText(459, 530, "No", Vector3(0, 0, 0), 2);
+						break;
+					}
+				}
+				else
+					if(!lvlUpMenu) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
 				if (lvlUpMenu) {
 					drawText(150, 140, "Strength beer", Vector3(0, 0, 0), 3);
 					drawText(150, 290, "Resistance beer", Vector3(0, 0, 0), 3);
@@ -742,7 +760,7 @@ void GameStage::render()
 					
 				}
 				else 
-					drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+					if(!interaction) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
 				
 				
 			}
@@ -999,8 +1017,8 @@ void GameStage::update(float elapsed_time)
 				if (enemies.size() <= 0) {
 					mapSwap = true;
 					previous_stage = Stage_ID;
-					if (obj == TUTORIAL) list.third = true;
-					else obj = LVLUP;
+					if (obj != TUTORIAL) obj = LVLUP;
+					list.third = true;
 					Stage_ID = MAP;
 
 				}
@@ -1043,7 +1061,8 @@ void GameStage::update(float elapsed_time)
 
 		}
 		if (stats.missing_hp >= 1.0f) {
-			
+			isBattle = false;
+			Stage_ID = MAP;
 			Game::instance->gameOver->cam = Game::instance->camera;
 			Game::instance->gameOver->entities = entities;
 			Game::instance->gameOver->enemies = enemies;
@@ -1276,7 +1295,10 @@ void GameOverStage::render()
 	RenderGUI(halfWidth, halfHeight, winWidth, winHeight, gui_shader, Texture::Get("data/gray_background.png"), Vector4(1,1,1,1));
 	RenderGUI(halfWidth, 191.7, winWidth, 100, gui_shader, Texture::Get("data/black_bar.png"), Vector4(1, 1, 1, 1));
 	if (RenderButton(395, 445, 250, 75, shader, Texture::Get("data/iconTextures/Back Button.png"), Vector4(1, 1, 1, 1), Texture::Get("data/iconTextures/Back  hover.png"))) {
+		
 		Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+		Game::instance->InitGameStage();
+
 		Game::instance->scene = INTRO;
 	}
 	glEnable(GL_DEPTH_TEST);

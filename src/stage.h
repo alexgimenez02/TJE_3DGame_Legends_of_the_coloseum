@@ -20,10 +20,9 @@ public:
 	//Atributes
 	string name;
 
-	/*
-	Stage(); //Constructor
-	virtual ~Stage(); //Destructor
-	*/
+	//Stage(); //Constructor
+	//virtual ~Stage() = 0; //Destructor
+	
 
 
 	//Methods

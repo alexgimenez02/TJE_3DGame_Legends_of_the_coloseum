@@ -252,7 +252,7 @@ void saveGame(const char* filename, DATA game_data)
 	MyFile << "HP: " << game_data.player_stats.missing_hp << endl;
 	MyFile << "RES: " << game_data.player_stats.resistance << endl;
 	MyFile << "POS: " << game_data.playerPosition.x << " " << game_data.playerPosition.y << " " << game_data.playerPosition.z << endl;
-	MyFile << "YAW: " << game_data.playerYaw;
+	MyFile << "YAW: " << game_data.playerYaw << endl;
 	MyFile << "STAGE: " << game_data.curr_stage;
 
 	MyFile.close();
