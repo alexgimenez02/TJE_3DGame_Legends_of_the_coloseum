@@ -501,6 +501,17 @@ void animate(Shader *a_shader, Animation *attack, Mesh *mesh, EnemyAI *currentEn
 	currentEnemy->enemyEntity->model = enemyModel;
 }
 
+
+void animateWeapon(Shader* a_shader, Animation* attack, Matrix44 weaponModel, Matrix44 enemyModel, Camera* cam, sWeapon weapon) {
+	Mesh* mesh = weapon.entity->mesh;
+	weaponModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+	//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+	Matrix44 idleHandLocalMatrix = attack->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+	Matrix44 Total = idleHandLocalMatrix * enemyModel;
+	Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+	RenderMesh(Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+}
+
 void GameStage::render()
 {
 	//set flags
@@ -615,24 +626,12 @@ void GameStage::render()
 				if (enemies[i] != currentEnemy->enemyEntity) {
 					
 					anim.idle_mesh[x]->renderAnimated(GL_TRIANGLES, &anim.idle_attack[x]->skeleton);
-					Mesh* mesh = weapon.entity->mesh;
-					swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-					//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-					Matrix44 rightHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-					Matrix44 Total = rightHandLocalMatrix * enemies[i]->model;
-					Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-					RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+					animateWeapon(a_shader, anim.idle_attack[x], swordModel, enemyModel, cam, weapon);
 				}
 			}
 			else {
 				anim.idle_mesh[x]->renderAnimated(GL_TRIANGLES, &anim.idle_attack[x]->skeleton);
-				Mesh* mesh = weapon.entity->mesh;
-				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-				Matrix44 rightHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-				Matrix44 Total = rightHandLocalMatrix * enemies[i]->model;
-				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+				animateWeapon(a_shader, anim.idle_attack[x], swordModel, enemyModel, cam, weapon);
 			}
 
 			//RenderMesh(/*GL_TRIANGLES, */enemies[0]->model, idle_mesh, enemies[0]->texture, a_shader, cam);
