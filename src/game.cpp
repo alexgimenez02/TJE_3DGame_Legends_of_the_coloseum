@@ -547,7 +547,8 @@ void Game::InitIntroStage()
 	intro->terrain = new EntityMap();
 	intro->terrain->mesh = new Mesh();
 	intro->terrain->mesh->createPlane(7000);
-	intro->terrain->texture = Texture::Get("data/grass.tga");
+	intro->terrain->texture = Texture::Get("data/sand.tga");
+	intro->terrain->shader = shader;
 	//Sky
 	intro->sky = new EntityMap();
 	intro->sky->mesh = Mesh::Get("data/cielo.ASE");

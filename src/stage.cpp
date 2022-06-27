@@ -53,23 +53,29 @@ void LoadSceneFile(const char* fileName, vector<EntityMesh*> *entities, vector<E
 			string meshPath = "data/props/" + meshName;
 			string texPath = "data/textures/" + texName;
 			newEntity->mesh = Mesh::Get(meshPath.c_str());
-			if (!newEntity->mesh) newEntity->mesh = new Mesh();
+			if (!newEntity->mesh) {
+				newEntity->mesh = new Mesh();
+				newEntity->mesh->createCube();
+			}
 			newEntity->texture = Texture::Get(texPath.c_str());
 			if (!newEntity->texture) newEntity->texture = Texture::getBlackTexture();
 			newEntity->name = meshName;
 			newEntity->pos = MeshPosition;
-			if (fileName == "data/ArenaJordiAlex.scene")
+			if (fileName == "data/ArenaJordiAlex.scene" && meshName != "WALL")
 			{
 				cout << "Arena" << endl;
 				newEntity->model.scale(2.5f, 2.5f, 2.5f);
 				newEntity->model.translate(0.0f, -0.02f, 0.0f);
+				
 			}
 			bool roof = meshName == "roof_raised.obj" || meshName == "roof_flat.obj" || meshName == "door_frame.obj";
-			if (!roof) {
+			if (!roof && fileName != "data/ArenaJordiAlex.scene") {
 				entitiesWithColision->push_back(newEntity);
 			}
-
-			entities->push_back(newEntity);
+			if (meshName == "WALL")
+				entitiesWithColision->push_back(newEntity);
+			else
+				entities->push_back(newEntity);
 		}
 	}
 }
@@ -130,7 +136,7 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	//disable shader
 	a_shader->disable();
 
-	//if (Camera::current) a_mesh->renderBounding(model);
+	// if (Camera::current) a_mesh->renderBounding(model);
 
 
 }
@@ -160,6 +166,9 @@ void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 		a_shader->disable();
 	}
 }
+void RenderAnimation() {
+	return;
+};
 void RenderGUI(float x, float y, float w, float h, Shader* a_shader, Texture* tex, Vector4 tex_range, Vector4 color = Vector4(1, 1, 1, 1), bool flipUV = false) {
 	
 	int windowWidth = Game::instance->window_width;
@@ -284,11 +293,11 @@ void IntroStage::render()
 	sky->render();
 	glEnable(GL_DEPTH_TEST);
 	Matrix44 planeMatrix = Matrix44();
-	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, a_shader, cam, 20.0f);
+	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, terrain->shader, cam, 200.0f);
 	Matrix44 coliseoMatrix = Matrix44();
 	coliseoMatrix.translate(0.0f, -2.0f, 0.0f);
 	coliseoMatrix.scale(75.0f, 75.0f, 75.0f);
-	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, a_shader, cam);
+	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, terrain->shader, cam);
 	//GUI RENDER
 
 	// RenderAllGUI
@@ -662,49 +671,70 @@ void GameStage::render()
 		drawText(276, 375, "Main Menu", Vector3(0, 0, 0), 5);
 		//drawText(posx, posy, "Save", Vector3(0, 0, 0), 5);
 	}
-	if (!menu) {
-		if (obj == TUTORIAL) {
-			if (list.first) {
-				if (Stage_ID == TABERN) {
-					if (interaction) {
-						switch (nextText) {
-						case 0:
-							drawText(85, 482, "Welcome to the Arena's town, where powerful\nwarriors go to the arena and test their skills", Vector3(0, 0, 0), 2.5);
-							break;
-						case 1:
-							drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
+	if (Game::instance->scene != INTRO) {
+
+		if (!menu) {
+			if (obj == TUTORIAL) {
+				if (list.first) {
+					if (Stage_ID == TABERN) {
+						if (interaction) {
+							switch (nextText) {
+							case 0:
+								drawText(85, 482, "Welcome to the Arena's town, where powerful\nwarriors go to the arena and test their skills", Vector3(0, 0, 0), 2.5);
+								break;
+							case 1:
+								drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
 							
-							break;
-						default:
-							nextText = 0;
-							interaction = false;
-							list.second = true;
-							list.first = false;
-							break;
+								break;
+							default:
+								nextText = 0;
+								interaction = false;
+								list.second = true;
+								list.first = false;
+								break;
+							}
+						}
+						else {
+							drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
 						}
 					}
 					else {
-						drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+						drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
 					}
 				}
-				else {
-					drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
-				}
-			}
-			if (list.second) {
-				if (interaction) {
-					drawText(165, 495, "GO TO THE ARENA!", Vector3(0, 0, 0), 5);
-					if (nextText > 0) {
-						interaction = false;
-						nextText = 0;
+				if (list.second) {
+					if (interaction) {
+						drawText(165, 495, "GO TO THE ARENA!", Vector3(0, 0, 0), 5);
+						if (nextText > 0) {
+							interaction = false;
+							nextText = 0;
+						}
 					}
+					else drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
+					if (Stage_ID == ARENA) list.second = false;
 				}
-				else drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
-				if (Stage_ID == ARENA) list.second = false;
-			}
 		
-			if (list.third) {
-				if (Stage_ID == TABERN) {
+				if (list.third) {
+					if (Stage_ID == TABERN) {
+						if (interaction) {
+							switch (nextText) {
+							case 0:
+								drawText(97, 504, "Welcome back! Did you enjoy your fights?", Vector3(0, 0, 0), 2.7);
+								break;
+							default:
+								drawText(72, 482, "Do you want to upgrade your stats with a drink?", Vector3(0, 0, 0), 2.5);
+								drawText(271, 530, "Yes", Vector3(0, 0, 0), 2);
+								drawText(459, 530, "No", Vector3(0, 0, 0), 2);
+								break;
+							}
+						}else
+						drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+					}else
+					drawText(424, 52, "Return to the tabern", Vector3(0, 0, 0), 3);
+				}
+			}
+			else if (obj == LVLUP) {
+				if (Stage_ID == TABERN) {				
 					if (interaction) {
 						switch (nextText) {
 						case 0:
@@ -716,60 +746,42 @@ void GameStage::render()
 							drawText(459, 530, "No", Vector3(0, 0, 0), 2);
 							break;
 						}
-					}else
-					drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
-				}else
-				drawText(424, 52, "Return to the tabern", Vector3(0, 0, 0), 3);
-			}
-		}
-		else if (obj == LVLUP) {
-			if (Stage_ID == TABERN) {				
-				if (interaction) {
-					switch (nextText) {
-					case 0:
-						drawText(97, 504, "Welcome back! Did you enjoy your fights?", Vector3(0, 0, 0), 2.7);
-						break;
-					default:
-						drawText(72, 482, "Do you want to upgrade your stats with a drink?", Vector3(0, 0, 0), 2.5);
-						drawText(271, 530, "Yes", Vector3(0, 0, 0), 2);
-						drawText(459, 530, "No", Vector3(0, 0, 0), 2);
-						break;
 					}
-				}
-				else
-					if(!lvlUpMenu) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
-				if (lvlUpMenu) {
-					drawText(150, 140, "Strength beer", Vector3(0, 0, 0), 3);
-					drawText(150, 290, "Resistance beer", Vector3(0, 0, 0), 3);
-					if (stats.strength < 5) {
-						drawText(300, 216,"Current strength:",Vector3(0,0,0),3);
-						drawText(585, 216,to_string(stats.strength),Vector3(0,0,0),3);
+					else
+						if(!lvlUpMenu) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+					if (lvlUpMenu) {
+						drawText(150, 140, "Strength beer", Vector3(0, 0, 0), 3);
+						drawText(150, 290, "Resistance beer", Vector3(0, 0, 0), 3);
+						if (stats.strength < 5) {
+							drawText(300, 216,"Current strength:",Vector3(0,0,0),3);
+							drawText(585, 216,to_string(stats.strength),Vector3(0,0,0),3);
 
-					}
-					else {
-						drawText(345, 216,"Max strength",Vector3(0,0,0),3.5);
-					}
-					if (stats.resistance < 0.5f) {
-						drawText(300, 360,"Current resistance:",Vector3(0,0,0),3);
-						int curr_res = stats.resistance * 10;
-						drawText(607, 360,to_string(curr_res), Vector3(0, 0, 0), 3);
-					}
-					else {
-						drawText(327, 358,"Max resistance",Vector3(0,0,0),3.5);
-					}
+						}
+						else {
+							drawText(345, 216,"Max strength",Vector3(0,0,0),3.5);
+						}
+						if (stats.resistance < 0.5f) {
+							drawText(300, 360,"Current resistance:",Vector3(0,0,0),3);
+							int curr_res = stats.resistance * 10;
+							drawText(607, 360,to_string(curr_res), Vector3(0, 0, 0), 3);
+						}
+						else {
+							drawText(327, 358,"Max resistance",Vector3(0,0,0),3.5);
+						}
 					
+					}
+					else 
+						if(!interaction) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+				
+				
 				}
-				else 
-					if(!interaction) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
-				
-				
+				else {
+					drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
+				}
 			}
 			else {
-				drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
+				if(Stage_ID != ARENA) drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
 			}
-		}
-		else {
-			if(Stage_ID != ARENA) drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
 		}
 	}
 
@@ -824,13 +836,17 @@ void GameStage::update(float elapsed_time)
 			sphereTabern->model.translate(-11.005f, 0.25f, 2.67f);
 			sphereTabern->pos = Vector3(-11.005f, 0.25f, 2.67f);
 			//sphereTabern->model.scale(0.5f, 0.5f, 0.5f);
+			terrain->texture = Texture::Get("data/grass.tga");
+			tiling = 30.0f;
 			Sleep(250);
 			break;
 		case ARENA:
 			LoadSceneFile("data/ArenaJordiAlex.scene", &entities, &entitiesColision);
 			LoadEnemiesInScene("data/enemies.scene", &enemies);
-			player->pos = Vector3(23.52f,0.0f,-27.64f);
+			player->pos = Vector3(37.41f, 0.0f, -27.66f);
 			player->yaw = -435.6f;
+			terrain->texture = Texture::Get("data/sand.tga");
+			tiling = 200.0f;
 			Sleep(250);
 			break;
 		case TABERN:
@@ -1039,6 +1055,22 @@ void GameStage::update(float elapsed_time)
 
 
 				Vector3 nexPos = player->pos + playerVel;
+
+				COL_RETURN ret1;
+				for (size_t i = 0; i < entitiesColision.size(); i++)
+				{
+					Matrix44 cubeModel = Matrix44();
+					cubeModel.translate(entitiesColision[i]->pos.x, entitiesColision[i]->pos.y, entitiesColision[i]->pos.z);
+					cubeModel.scale(1.5f, 10.0f, 1.5f);
+					entitiesColision[i]->model = cubeModel;
+					ret1 = CheckColision(player->pos, nexPos, entitiesColision[i], elapsed_time,0.5f);
+					if (ret1.colision) {
+						nexPos = ret1.modifiedPosition;
+						break;
+					}
+				}
+				player->pos = nexPos;
+				
 
 				COL_RETURN ret;
 				for (size_t i = 0; i < enemies.size(); i++)
