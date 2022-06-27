@@ -9,7 +9,7 @@ class EnemyAI
 public:
 	//atributes
 	vector<POSITION> attacks;
-	EntityMesh* enemyEntity;
+	EntityMesh* enemyEntity, *enemyWeapon;
 	int hp;
 	//ctor
 	EnemyAI(int s, EntityMesh* ent, int h);

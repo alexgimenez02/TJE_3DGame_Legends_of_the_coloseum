@@ -7,6 +7,7 @@
 #include "fbo.h"
 #include "enemyAI.h"
 #include <bass.h>
+#include "animation.h"
 
 
 typedef struct COLISION_RETURN {
@@ -20,9 +21,10 @@ public:
 	//Atributes
 	string name;
 
-	//Stage(); //Constructor
-	//virtual ~Stage() = 0; //Destructor
-	
+	/*
+	Stage(); //Constructor
+	virtual ~Stage(); //Destructor
+	*/
 
 
 	//Methods
@@ -112,6 +114,12 @@ public:
 	EnemyAI* currentEnemy;
 	HSAMPLE currentSFX;
 	DWORD curr_SFX_channel;
+	POSITION Attack = NONE;
+	/*vector<Mesh*> idle_mesh, up_mesh, right_mesh, left_mesh, down_mesh;
+	vector<Animation*> idle_attack, up_attack, right_attack, left_attack, down_attack;*/
+	float durationTime = 0.0f;
+	float cooldown = 3.0f;
+	float parry = 2.0f;
 	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false, interaction = false, lvlUpMenu = false;
 	int nextText = 0;
 	float tiling = 20.0f, waitTime = 0.0f;

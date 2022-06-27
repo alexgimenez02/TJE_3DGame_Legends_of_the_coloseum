@@ -34,7 +34,7 @@ public:
 	string current_song;
 	HSAMPLE currentSound;
 	DWORD currentChannel;
-	
+	sANIMATION sanimation;
 	STAGE scene = INTRO;
 	Stage* current_stage;
 	IntroStage* intro;
@@ -60,10 +60,6 @@ public:
 	void onGamepadButtonDown(SDL_JoyButtonEvent event);
 	void onGamepadButtonUp(SDL_JoyButtonEvent event);
 	void onResize(int width, int height);
-	void InitIntroStage();
-	void InitControlsStage();
-	void InitGameStage();
-	void InitGameOver();
 
 };
 

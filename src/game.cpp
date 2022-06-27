@@ -91,7 +91,13 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	currentChannel = BASS_SampleGetChannel(currentSound, false);
 
 	BASS_ChannelPlay(currentChannel, true);
+	//current_song = songs[1];
+	//PlayGameSound(current_song.c_str(), true);
 	
+	intro = new IntroStage();
+	controls = new ControlsStage();
+	game_s = new GameStage();
+	gameOver = new GameOverStage();
 
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 	//create our camera
@@ -99,16 +105,105 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	camera->lookAt(Vector3(0.f,100.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
 	camera->setPerspective(70.f,window_width/(float)window_height,0.1f,10000.f); //set the projection, we want to be perspective
 
-	//Stages initialization
-	InitIntroStage();
-	InitControlsStage();
-	InitGameStage();
-	InitGameOver();
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
-
-	// example of shader loading using the shaders manager
+	//LoadSceneFile("data/MapJordiAlex.scene");
 	
+	//Game Stage Init
+	game_s->sky = new EntityMap();
+	game_s->sky->mesh = Mesh::Get("data/cielo.ASE");
+	game_s->terrain = new EntityMap();
+	game_s->sky->texture = new Texture();
+	game_s->sky->texture->load("data/cielo.tga");
+	game_s->terrain->mesh = new Mesh();
+	game_s->terrain->mesh->createPlane(100);
+	game_s->terrain->texture = Texture::Get("data/grass.tga");
+
+	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar_frame.png"));
+	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar.png"));
+
+	game_s->stats = {
+		1,
+		0.0f,
+		0.1f
+	};
+	//Intro Stage Init
+	intro->a_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
+	intro->icons = get_all_files_names_within_icons();
+	intro->num_iconfiles = intro->icons.size();
+	for (size_t i = 0; i < intro->num_iconfiles; i++)
+	{
+		intro->positions.push_back(readPosition(intro->icons[i].c_str())); //controlsIconsTextures
+	}
+	intro->textures.push_back(Texture::Get("data/iconTextures/Play Button.png"));
+	intro->textures.push_back(Texture::Get("data/iconTextures/Controls Button.png"));
+	intro->textures.push_back(Texture::Get("data/iconTextures/Exit Button.png"));
+
+	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Play hover.png"));
+	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Controls  hover.png"));
+	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Exit hover.png"));
+
+	//Background
+	//Terrain
+	intro->terrain = new EntityMap();
+	intro->terrain->mesh = new Mesh();
+	intro->terrain->mesh->createPlane(7000);
+	intro->terrain->texture = Texture::Get("data/grass.tga");
+	//Sky
+	intro->sky = new EntityMap();
+	intro->sky->mesh = Mesh::Get("data/cielo.ASE");
+	intro->sky->texture = Texture::Get("data/cielo.tga");
+	intro->sky->shader = shader;
+
+	//Colosseum
+	intro->colosseum = new EntityMesh();
+	intro->colosseum->mesh = Mesh::Get("data/props/Coliseo.obj");
+	intro->colosseum->texture = Texture::Get("data/textures/Coliseo.png");
+
+	//Camera
+	intro->cam = new Camera();
+	intro->cam = Game::instance->camera;
+	intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+
+	//Controls stage init
+	controls->a_shader = intro->a_shader;
+	//Sky
+	controls->sky = intro->sky;
+
+
+	//Terrain
+	controls->terrain = intro->terrain;
+
+	//Colosseum
+	controls->colosseum = intro->colosseum;
+
+	//Cam
+	controls->cam = new Camera();
+	controls->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+
+	controls->icons = get_all_files_names_within_folder();
+	for (size_t i = 0; i < controls->icons.size(); i++)
+	{
+		controls->positions.push_back(readPosition(controls->icons[i].c_str()));
+	}
+	controls->textures.push_back(Texture::Get("data/controlsIconsTextures/box.png"));
+
+	
+	// example of shader loading using the shaders manager
+	game_s->shader = new Shader();
+	game_s->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+	game_s->gui_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
+
+	game_s->sky->shader = game_s->shader;
+	game_s->terrain->shader = game_s->shader;
+	game_s->player = new EntityMesh();
+	game_s->weapon.entity = new EntityMesh();
+	game_s->weapon.entity->mesh = Mesh::Get("data/props/sword.obj");
+	game_s->weapon.entity->texture = Texture::Get("data/textures/sword.png");
+	game_s->weapon.entity->scale = 1 / 20.0f;
+
+	const char* x = "data/animations/Character";
+	sanimation = getAnimation(x);
 
 	current_stage = intro;
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
@@ -520,117 +615,5 @@ void Game::onResize(int width, int height)
 	camera->aspect =  width / (float)height;
 	window_width = width;
 	window_height = height;
-}
-
-void Game::InitIntroStage()
-{
-	//Intro stage init
-	intro = new IntroStage();
-
-	intro->a_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
-	intro->icons = get_all_files_names_within_icons();
-	intro->num_iconfiles = intro->icons.size();
-	for (size_t i = 0; i < intro->num_iconfiles; i++)
-	{
-		intro->positions.push_back(readPosition(intro->icons[i].c_str())); //controlsIconsTextures
-	}
-	intro->textures.push_back(Texture::Get("data/iconTextures/Play Button.png"));
-	intro->textures.push_back(Texture::Get("data/iconTextures/Controls Button.png"));
-	intro->textures.push_back(Texture::Get("data/iconTextures/Exit Button.png"));
-
-	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Play hover.png"));
-	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Controls  hover.png"));
-	intro->textures_hover.push_back(Texture::Get("data/iconTextures/Exit hover.png"));
-
-	//Background
-	//Terrain
-	intro->terrain = new EntityMap();
-	intro->terrain->mesh = new Mesh();
-	intro->terrain->mesh->createPlane(7000);
-	intro->terrain->texture = Texture::Get("data/grass.tga");
-	//Sky
-	intro->sky = new EntityMap();
-	intro->sky->mesh = Mesh::Get("data/cielo.ASE");
-	intro->sky->texture = Texture::Get("data/cielo.tga");
-	intro->sky->shader = shader;
-
-	//Colosseum
-	intro->colosseum = new EntityMesh();
-	intro->colosseum->mesh = Mesh::Get("data/props/Coliseo.obj");
-	intro->colosseum->texture = Texture::Get("data/textures/Coliseo.png");
-
-	//Camera
-	intro->cam = new Camera();
-	intro->cam = Game::instance->camera;
-	intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
-}
-
-void Game::InitControlsStage()
-{
-	//Controls stage init
-	controls = new ControlsStage();
-
-	controls->a_shader = intro->a_shader;
-	//Sky
-	controls->sky = intro->sky;
-
-
-	//Terrain
-	controls->terrain = intro->terrain;
-
-	//Colosseum
-	controls->colosseum = intro->colosseum;
-
-	//Cam
-	controls->cam = new Camera();
-	controls->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
-
-	controls->icons = get_all_files_names_within_folder();
-	for (size_t i = 0; i < controls->icons.size(); i++)
-	{
-		controls->positions.push_back(readPosition(controls->icons[i].c_str()));
-	}
-	controls->textures.push_back(Texture::Get("data/controlsIconsTextures/box.png"));
-}
-
-
-
-void Game::InitGameStage() {
-	//Game Stage Init
-	game_s = new GameStage();
-
-	game_s->sky = new EntityMap();
-	game_s->sky->mesh = Mesh::Get("data/cielo.ASE");
-	game_s->terrain = new EntityMap();
-	game_s->sky->texture = new Texture();
-	game_s->sky->texture->load("data/cielo.tga");
-	game_s->terrain->mesh = new Mesh();
-	game_s->terrain->mesh->createPlane(100);
-	game_s->terrain->texture = Texture::Get("data/grass.tga");
-
-	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar_frame.png"));
-	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar.png"));
-
-	game_s->stats = {
-		1,
-		0.0f,
-		0.1f
-	};
-	game_s->shader = new Shader();
-	game_s->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
-	game_s->gui_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
-
-	game_s->sky->shader = game_s->shader;
-	game_s->terrain->shader = game_s->shader;
-	game_s->player = new EntityMesh();
-	game_s->weapon.entity = new EntityMesh();
-	game_s->weapon.entity->mesh = Mesh::Get("data/props/sword.obj");
-	game_s->weapon.entity->texture = Texture::Get("data/textures/sword.png");
-	game_s->weapon.entity->scale = 1 / 20.0f;
-}
-
-void Game::InitGameOver()
-{
-	gameOver = new GameOverStage();
 }
 
