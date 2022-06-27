@@ -118,8 +118,8 @@ public:
 	/*vector<Mesh*> idle_mesh, up_mesh, right_mesh, left_mesh, down_mesh;
 	vector<Animation*> idle_attack, up_attack, right_attack, left_attack, down_attack;*/
 	float durationTime = 0.0f;
-	float cooldown = 3.0f;
-	float parry = 2.0f;
+	float cooldown = 2.0f;
+	float parry = 0.0f;
 	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false, interaction = false, lvlUpMenu = false;
 	int nextText = 0;
 	float tiling = 20.0f, waitTime = 0.0f;

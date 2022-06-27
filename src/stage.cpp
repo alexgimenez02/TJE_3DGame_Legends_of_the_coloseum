@@ -170,9 +170,6 @@ void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 		a_shader->disable();
 	}
 }
-void RenderAnimation() {
-	return;
-};
 void RenderGUI(float x, float y, float w, float h, Shader* a_shader, Texture* tex, Vector4 tex_range, Vector4 color = Vector4(1, 1, 1, 1), bool flipUV = false) {
 	
 	int windowWidth = Game::instance->window_width;
@@ -226,6 +223,35 @@ bool RenderButton(float x, float y, float w, float h, Shader* a_shader, Texture*
 
 	bool pressed = Game::instance->wasLeftButtonPressed && hover;
 	return pressed;
+}
+void animate(Shader* a_shader, Animation* attack, Mesh* mesh, EnemyAI* currentEnemy, float durationTime, Camera* cam) {
+
+	Matrix44 enemyModel = Matrix44();
+	enemyModel.translate(currentEnemy->enemyEntity->pos.x, currentEnemy->enemyEntity->pos.y, currentEnemy->enemyEntity->pos.z);
+	enemyModel.scale(currentEnemy->enemyEntity->scale, currentEnemy->enemyEntity->scale, currentEnemy->enemyEntity->scale);
+	enemyModel.rotate(currentEnemy->enemyEntity->yaw * DEG2RAD, Vector3(0, 1, 0));
+
+	a_shader->enable();
+	attack->assignTime(durationTime + 0.6f);
+	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+	if (currentEnemy->enemyEntity->texture != NULL) {
+		a_shader->setUniform("u_texture", currentEnemy->enemyEntity->texture, 0);
+	}
+	a_shader->setUniform("u_tex_tiling", 1.0f);
+	a_shader->setUniform("u_model", enemyModel);
+	mesh->renderAnimated(GL_TRIANGLES, &attack->skeleton);
+	a_shader->disable();
+	currentEnemy->enemyEntity->model = enemyModel;
+}
+void animateWeapon(Shader* a_shader, Animation* attack, Matrix44 weaponModel, Matrix44 enemyModel, Camera* cam, sWeapon weapon) {
+	Mesh* mesh = weapon.entity->mesh;
+	weaponModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+	//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+	Matrix44 idleHandLocalMatrix = attack->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+	Matrix44 Total = idleHandLocalMatrix * enemyModel;
+	Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+	RenderMesh(Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
 }
 #pragma region COLISION
 COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float elapsed_time, float radius = 2.0f)
@@ -479,39 +505,6 @@ void ControlsStage::update(float elapsed_time)
 
 //GameStage
 
-void animate(Shader *a_shader, Animation *attack, Mesh *mesh, EnemyAI *currentEnemy, float durationTime, Camera *cam) {
-
-	Matrix44 enemyModel = Matrix44();
-	enemyModel.translate(currentEnemy->enemyEntity->pos.x, currentEnemy->enemyEntity->pos.y, currentEnemy->enemyEntity->pos.z);
-	enemyModel.scale(currentEnemy->enemyEntity->scale, currentEnemy->enemyEntity->scale, currentEnemy->enemyEntity->scale);
-	//float ang = acos(clamp(enemyModel.frontVector().normalize().dot(to_target.normalize()), -1.0f, 1.0f));
-	enemyModel.rotate(currentEnemy->enemyEntity->yaw * DEG2RAD, Vector3(0, 1, 0));
-
-	a_shader->enable();
-	attack->assignTime(durationTime + 0.6f);
-	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
-	if (currentEnemy->enemyEntity->texture != NULL) {
-		a_shader->setUniform("u_texture", currentEnemy->enemyEntity->texture, 0);
-	}
-	a_shader->setUniform("u_tex_tiling", 1.0f);
-	a_shader->setUniform("u_model", enemyModel);
-	mesh->renderAnimated(GL_TRIANGLES, &attack->skeleton);
-	a_shader->disable();
-	currentEnemy->enemyEntity->model = enemyModel;
-}
-
-
-void animateWeapon(Shader* a_shader, Animation* attack, Matrix44 weaponModel, Matrix44 enemyModel, Camera* cam, sWeapon weapon) {
-	Mesh* mesh = weapon.entity->mesh;
-	weaponModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-	//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-	Matrix44 idleHandLocalMatrix = attack->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-	Matrix44 Total = idleHandLocalMatrix * enemyModel;
-	Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-	RenderMesh(Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
-}
-
 void GameStage::render()
 {
 	//set flags
@@ -642,68 +635,34 @@ void GameStage::render()
 			if (Attack == DOWN) {
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.down_attack[x], anim.down_mesh[x], currentEnemy, durationTime, cam);
-				Mesh* mesh = weapon.entity->mesh;
-				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-				Matrix44 idleHandLocalMatrix = anim.down_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-				Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
-				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+				animateWeapon(a_shader, anim.down_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
 			else if (Attack == NONE && isBattle) {
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.idle_attack[x], anim.idle_mesh[x], currentEnemy, durationTime, cam);
-
-				Mesh* mesh = weapon.entity->mesh;
-				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-				Matrix44 idleHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-				Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
-				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+				animateWeapon(a_shader, anim.idle_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
 			else if (Attack == UP) {
 
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.up_attack[x], anim.up_mesh[x], currentEnemy, durationTime, cam);
-
-				Mesh* mesh = weapon.entity->mesh;
-				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-				Matrix44 upHandLocalMatrix = anim.up_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-				Matrix44 Total = upHandLocalMatrix * currentEnemy->enemyEntity->model;
-				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+				animateWeapon(a_shader, anim.up_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
 			else if (Attack == LEFT) {
 
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.left_attack[x], anim.left_mesh[x], currentEnemy, durationTime, cam);
-
-				Mesh* mesh = weapon.entity->mesh;
-				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-				Matrix44 leftHandLocalMatrix = anim.left_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-				Matrix44 Total = leftHandLocalMatrix * currentEnemy->enemyEntity->model;
-				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+				animateWeapon(a_shader, anim.left_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
 			else if (Attack == RIGHT) {
 
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.right_attack[x], anim.right_mesh[x], currentEnemy, durationTime, cam);
-
-				Mesh* mesh = weapon.entity->mesh;
-				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-				Matrix44 rightHandLocalMatrix = anim.right_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-				Matrix44 Total = rightHandLocalMatrix * currentEnemy->enemyEntity->model;
-				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+				animateWeapon(a_shader, anim.right_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
 		}
@@ -938,9 +897,12 @@ void GameStage::render()
 
 void GameStage::update(float elapsed_time)
 {
-	posx = Input::mouse_position.x;
-	posy = Input::mouse_position.y;
-	if (Input::isKeyPressed(SDL_SCANCODE_9)) cout << posx << "," << posy << endl;
+	durationTime += elapsed_time * 0.75;
+	cooldown -= elapsed_time * 0.75;
+	parry += elapsed_time * 0.75;
+	/*posx = Input::mouse_position.x;
+	posy = Input::mouse_position.y;*/
+	if (Input::isKeyPressed(SDL_SCANCODE_9)) cout << cooldown << endl;
 #pragma region SCENE_LOADER
 	if (mapSwap)
 	{
@@ -1094,16 +1056,18 @@ void GameStage::update(float elapsed_time)
 			{
 				weapon.movementMotion = false;
 				if (currentEnemy->hp > 0) {
-					if (currentEnemy->EmptyAttacks()) {
+					if (currentEnemy->EmptyAttacks() && cooldown <= 0) {
 						//Wait until hit
-						if (cooldown <= 0) Attack = NONE;
+						Attack = NONE;
 						if (weapon.attacked) {
 							Attack = DOWN;
 							currentEnemy->GenerateAttacks();
 							currentEnemy->hp -= stats.strength;
 							cout << "Enemy current health: " << currentEnemy->hp << endl;
-							weapon.attacked = false;
-							cooldown = 1.5f;
+							cooldown = 2.0f;
+							waitTime = 0.0f;
+							cout << "Cooldown started: " << cooldown << endl;
+							durationTime = 0.75f;
 						}
 						else if (waitTime >= 5.0f) {
 							currentEnemy->GenerateAttacks();
@@ -1112,34 +1076,34 @@ void GameStage::update(float elapsed_time)
 						else {
 							waitTime += elapsed_time;
 						}
+						
 					}
 					else if (cooldown <= 0) {
 						POSITION nextAttack = currentEnemy->GetNextAttack();
 						//Animaciones enemigo
-						if (nextAttack == UP ) {
-							//Animacion up
-							parried = true;
-							cout << "UP" << endl;	
-						}
-						else if (nextAttack == LEFT) {
-							//Animacion left
-							parried = true;
-							cout << "LEFT" << endl;
-							
-						}
-						else {
-							parried = true;
-							cout << "RIGHT" << endl;
-						}
 						Attack = nextAttack;
-						durationTime = 0.0f;
+						switch (Attack) {
+						case UP: 
+							cout << "UP" << endl;
+							break;
+						case RIGHT:
+							cout << "RIGHT" << endl;
+							break;
+						case LEFT:
+							cout << "LEFT" << endl;
+							break;
+						}
+						durationTime = -0.25f;
+						cooldown = 2.0f;
+					}
+					else if (cooldown <= 1.0f && cooldown > 0.0f && !(Attack == NONE || Attack == DOWN)) {
+						parried = Attack == weapon.defType;
 
 						if (curr_SFX_channel != 0)
 							Audio::Stop(curr_SFX_channel);
 
-						switch (nextAttack) {
+						switch (Attack) {
 						case UP:
-
 							if (parried) currentSFX = BASS_SampleLoad(false, Game::instance->audios[0].c_str(), 0, 0, 3, 0);
 							else currentSFX = BASS_SampleLoad(false, Game::instance->audios[3].c_str(), 0, 0, 3, 0);
 							if (currentSFX == 0) {
@@ -1166,14 +1130,17 @@ void GameStage::update(float elapsed_time)
 							break;
 
 						}
-						if (cooldown <= 0) {
-							if (!parried) stats.missing_hp += 1 - (0.4f + stats.resistance);
+						if (!parried) {
+							stats.missing_hp += 1 - (0.4f + stats.resistance);
 						}
-
+						else {
+							weapon.defType = NONE;
+						}
+						cooldown = 0.0f;
 						BASS_ChannelPlay(curr_SFX_channel, false);
 						parried = false;
-						cooldown = 2.0f;
 					}
+					weapon.attacked = false;
 				}
 				else {
 					currentEnemy->enemyEntity->destroy();
@@ -1236,7 +1203,7 @@ void GameStage::update(float elapsed_time)
 					if (ret.colision) {
 						nexPos = ret.modifiedPosition;
 						isBattle = true;
-						currentEnemy = new EnemyAI(1, enemies[i], 2);
+						currentEnemy = new EnemyAI(3, enemies[i], 2);
 						currentEnemy->GenerateAttacks();
 						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f); //Center for enemy
 						nexPos = Vector3(51.7f, 0.0f, -21.9f); //Center for player
@@ -1284,7 +1251,7 @@ void GameStage::update(float elapsed_time)
 #pragma endregion CAMERA_MOVEMENT
 
 #pragma region WEAPON_MOVEMENT
-	float weapon_speed = 100.0f;
+	float weapon_speed = 70.0f;
 	if (weapon.attack)
 	{
 		if (weapon.down)
@@ -1379,10 +1346,6 @@ void GameStage::update(float elapsed_time)
 
 		}
 	}
-	else
-	{
-		weapon.defType = NONE;
-	}
 #pragma endregion WEAPON_MOVEMENT
 	if (!mapSwap) {
 #pragma region ENEMY_BEHAVIOUR
@@ -1432,14 +1395,10 @@ void GameStage::update(float elapsed_time)
 
 	}
 	if(!mapSwap) previous_stage = Stage_ID;
-	durationTime += elapsed_time*0.75;
-	cooldown -= elapsed_time*0.75;
-	parry -= elapsed_time*0.75;
-
-	if (Input::wasKeyPressed(SDL_SCANCODE_COMMA)) {
+	/*if (Input::wasKeyPressed(SDL_SCANCODE_COMMA)) {
 		enemies.clear();
 		LoadEnemiesInScene("data/enemies.scene", &enemies);
-	}
+	}*/
 }
 
 //GameOverStage

@@ -697,11 +697,11 @@ sANIMATION getAnimation(const char* filepath) {
 		char* upMesh = strcat(result3, "/up.mesh");
 		char* upSkanim = strcat(result4, "/up.skanim");
 
-		char* leftMesh = strcat(result5, "/left.mesh");
-		char* leftSkanim = strcat(result6, "/left.skanim");
+		char* leftMesh = strcat(result5, "/right.mesh");
+		char* leftSkanim = strcat(result6, "/right.skanim");
 
-		char* rightMesh = strcat(result7, "/right.mesh");
-		char* rightSkanim = strcat(result8, "/right.skanim");
+		char* rightMesh = strcat(result7, "/left.mesh");
+		char* rightSkanim = strcat(result8, "/left.skanim");
 
 		char* damageMesh = strcat(result9, "/damage.mesh");
 		char* damageSkanim = strcat(result10, "/damage.skanim");

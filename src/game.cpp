@@ -382,9 +382,11 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 				if (stg->Stage_ID != TABERN) {
 					if (!defence)
 					{
+						stg->parry = 0.0f;
 						stg->weapon.defence = true; 
 						stg->weapon.defType = RIGHT;
 						stg->weapon.defMotion = true;
+						cout << "Right defence" << endl;
 					}
 				}
 			}
@@ -395,9 +397,11 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 				if (stg->Stage_ID != TABERN) {
 					if (!defence)
 					{
+						stg->parry = 0.0f;
 						stg->weapon.defence = true;
 						stg->weapon.defType = LEFT;
 						stg->weapon.defMotion = true;
+						cout << "Left defence" << endl;
 					}
 				}
 			}
@@ -409,11 +413,13 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 				{
 					if (!defence)
 					{
+						stg->parry = 0.0f;
 						stg->weapon.defence = true;
 						stg->weapon.defType = UP;
 						stg->weapon.defMotion = true;
 						stg->weapon.defMotionUp = true;
 						stg->weapon.defRotation = true;
+						cout << "Up defence" << endl;
 					}
 
 				}
