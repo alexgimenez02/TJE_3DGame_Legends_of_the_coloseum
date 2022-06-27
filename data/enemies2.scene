@@ -1,0 +1,3 @@
+TYPE MESH_NAME TEX_NAME POSX POSY POSZ SCALE BITS ID
+MESH Character2.obj Character.png 50.0 0.0 0.0 0.1 1
+MESH Character5.obj Character.png 77.1614 0.0 -17.6517 0.065 4

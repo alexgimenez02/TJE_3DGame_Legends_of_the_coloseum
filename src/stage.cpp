@@ -246,11 +246,11 @@ void animate(Shader* a_shader, Animation* attack, Mesh* mesh, EnemyAI* currentEn
 }
 void animateWeapon(Shader* a_shader, Animation* attack, Matrix44 weaponModel, Matrix44 enemyModel, Camera* cam, sWeapon weapon) {
 	Mesh* mesh = weapon.entity->mesh;
-	weaponModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+	weaponModel.scale(30, 30 , 30);
 	//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
 	Matrix44 idleHandLocalMatrix = attack->skeleton.getBoneMatrix("mixamorig_RightHand", false);
 	Matrix44 Total = idleHandLocalMatrix * enemyModel;
-	Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+	Total.scale(1 / 1.75f, 1 / 1.75f, 1 / 1.75f);
 	RenderMesh(Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
 }
 #pragma region COLISION
@@ -949,7 +949,17 @@ void GameStage::update(float elapsed_time)
 		case ARENA:
 			enemies.clear();
 			LoadSceneFile("data/ArenaJordiAlex.scene", &entities, &entitiesColision);
-			LoadEnemiesInScene("data/enemies.scene", &enemies);
+
+			if (lvl%3 == 0) {
+				LoadEnemiesInScene("data/enemies1.scene", &enemies);
+			}
+			else if (lvl % 3 == 1) {
+				LoadEnemiesInScene("data/enemies2.scene", &enemies);
+			}
+			else {
+				LoadEnemiesInScene("data/enemies3.scene", &enemies);
+			}
+			lvl++;
 			player->pos = Vector3(37.41f, 0.0f, -27.66f);
 			player->yaw = -435.6f;
 			terrain->texture = Texture::Get("data/sand.tga");
