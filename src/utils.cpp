@@ -223,6 +223,71 @@ vector<string> get_all_audio_files()
 	}
 	return names;
 }
+sANIMATION getAnimation(const char* filepath) {
+	sANIMATION animation;
+	for (int i = 1; i < 7; i++) {
+
+		char result[100];
+		char result1[100];
+		char result2[100];
+		char result3[100];
+		char result4[100];
+		char result5[100];
+		char result6[100];
+		char result7[100];
+		char result8[100];
+		char result9[100];
+		char result10[100];
+
+		//const char* x = "data/animations/Character";
+
+		char* text = strcpy(result, filepath);
+
+		string s = to_string(i);
+		char const* p = s.c_str();
+
+		strcat(text, p);
+
+		strcpy(result1, text);
+		strcpy(result2, text);
+		strcpy(result3, text);
+		strcpy(result4, text);
+		strcpy(result5, text);
+		strcpy(result6, text);
+		strcpy(result7, text);
+		strcpy(result8, text);
+		strcpy(result9, text);
+		strcpy(result10, text);
+
+		char* idleMesh = strcat(result1, "/idle.mesh");
+		char* idleSkanim = strcat(result2, "/idle.skanim");
+
+		char* upMesh = strcat(result3, "/up.mesh");
+		char* upSkanim = strcat(result4, "/up.skanim");
+
+		char* leftMesh = strcat(result5, "/right.mesh");
+		char* leftSkanim = strcat(result6, "/right.skanim");
+
+		char* rightMesh = strcat(result7, "/left.mesh");
+		char* rightSkanim = strcat(result8, "/left.skanim");
+
+		char* damageMesh = strcat(result9, "/damage.mesh");
+		char* damageSkanim = strcat(result10, "/damage.skanim");
+
+		animation.idle_mesh.push_back(Mesh::Get(idleMesh));
+		animation.up_mesh.push_back(Mesh::Get(upMesh));
+		animation.left_mesh.push_back(Mesh::Get(leftMesh));
+		animation.right_mesh.push_back(Mesh::Get(rightMesh));
+		animation.down_mesh.push_back(Mesh::Get(damageMesh));
+
+		animation.idle_attack.push_back(Animation::Get(idleSkanim));
+		animation.up_attack.push_back(Animation::Get(upSkanim));
+		animation.right_attack.push_back(Animation::Get(leftSkanim));
+		animation.left_attack.push_back(Animation::Get(rightSkanim));
+		animation.down_attack.push_back(Animation::Get(damageSkanim));
+	}
+	return animation;
+}
 #pragma endregion FILE_SEARCHER
 #pragma region ICON_POSITION_READER
 ICON_POSITION readPosition(const char* filename)
@@ -252,8 +317,9 @@ void saveGame(const char* filename, DATA game_data)
 	MyFile << "HP: " << game_data.player_stats.missing_hp << endl;
 	MyFile << "RES: " << game_data.player_stats.resistance << endl;
 	MyFile << "POS: " << game_data.playerPosition.x << " " << game_data.playerPosition.y << " " << game_data.playerPosition.z << endl;
-	MyFile << "YAW: " << game_data.playerYaw;
-	MyFile << "STAGE: " << game_data.curr_stage;
+	MyFile << "YAW: " << game_data.playerYaw << endl;
+	MyFile << "STAGE: " << game_data.curr_stage << endl;
+	MyFile << "DIFF: " << game_data.diff;
 
 	MyFile.close();
 }
@@ -282,6 +348,8 @@ DATA loadGame(const char* filename) {
 			ret.playerYaw = sceneParser.getfloat();
 		if (sceneParser.getword() == string::basic_string("STAGE:"))
 			ret.curr_stage = (STAGE_ID) sceneParser.getint();
+		if (sceneParser.getword() == string::basic_string("DIFF:"))
+			ret.diff = sceneParser.getint();
 	}
 	ret.modified = true;
 	cout << "File loaded correctly!" << endl;
@@ -652,73 +720,3 @@ char* fetchBufferVec4(char* data, std::vector<Vector4>& vector)
 	memcpy(&vector[0], &floats[0], sizeof(float)*floats.size());
 	return data;
 }
-
-
-
-sANIMATION getAnimation(const char* filepath) {
-	sANIMATION animation;
-	for (int i = 1; i < 7; i++) {
-
-		char result[100];
-		char result1[100];
-		char result2[100];
-		char result3[100];
-		char result4[100];
-		char result5[100];
-		char result6[100];
-		char result7[100];
-		char result8[100];
-		char result9[100];
-		char result10[100];
-
-		//const char* x = "data/animations/Character";
-		
-		char* text = strcpy(result, filepath);
-
-		string s = to_string(i);
-		char const* p = s.c_str();
-
-		strcat(text, p);
-
-		strcpy(result1, text);
-		strcpy(result2, text);
-		strcpy(result3, text);
-		strcpy(result4, text);
-		strcpy(result5, text);
-		strcpy(result6, text);
-		strcpy(result7, text);
-		strcpy(result8, text);
-		strcpy(result9, text);
-		strcpy(result10, text);
-
-		char* idleMesh = strcat(result1, "/idle.mesh");
-		char* idleSkanim = strcat(result2, "/idle.skanim");
-
-		char* upMesh = strcat(result3, "/up.mesh");
-		char* upSkanim = strcat(result4, "/up.skanim");
-
-		char* leftMesh = strcat(result5, "/right.mesh");
-		char* leftSkanim = strcat(result6, "/right.skanim");
-
-		char* rightMesh = strcat(result7, "/left.mesh");
-		char* rightSkanim = strcat(result8, "/left.skanim");
-
-		char* damageMesh = strcat(result9, "/damage.mesh");
-		char* damageSkanim = strcat(result10, "/damage.skanim");
-		
-		animation.idle_mesh.push_back(Mesh::Get(idleMesh));
-		animation.up_mesh.push_back(Mesh::Get(upMesh));
-		animation.left_mesh.push_back(Mesh::Get(leftMesh));
-		animation.right_mesh.push_back(Mesh::Get(rightMesh));
-		animation.down_mesh.push_back(Mesh::Get(damageMesh));
-
-		animation.idle_attack.push_back(Animation::Get(idleSkanim));
-		animation.up_attack.push_back(Animation::Get(upSkanim));
-		animation.right_attack.push_back(Animation::Get(leftSkanim));
-		animation.left_attack.push_back(Animation::Get(rightSkanim));
-		animation.down_attack.push_back(Animation::Get(damageSkanim));
-	}
-	return animation;
-}
-
-

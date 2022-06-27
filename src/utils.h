@@ -55,6 +55,7 @@ struct DATA {
 	float playerYaw;
 	STAGE_ID curr_stage;
 	bool modified = false;
+	int diff = 0;
 };
 
 struct sANIMATION{

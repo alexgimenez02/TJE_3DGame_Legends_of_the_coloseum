@@ -269,8 +269,6 @@ COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float e
 		ret.modifiedPosition = nexPos;
 		return ret;
 	}
-
-	if(radius == 0.75f) cout << "Colision!" << endl;
 	Vector3 push_away = normalize(coll - character_center) * elapsed_time;
 	nexPos = (pos - push_away); //move to previous pos but a little bit further
 	//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
@@ -348,8 +346,12 @@ void IntroStage::render()
 			Game::instance->game_s->stats = load_game.player_stats;
 			Game::instance->game_s->player->pos = load_game.playerPosition;
 			Game::instance->game_s->player->yaw = load_game.playerYaw;
+			Game::instance->game_s->Stage_ID = load_game.curr_stage;
+			Game::instance->game_s->diff = load_game.diff;
 		}
 		else{
+			Game::instance->game_s->Stage_ID = MAP;
+			Game::instance->game_s->mapSwap = true;
 			Game::instance->game_s->player->pos = Vector3(30.12f, 0.0f, 16.88f);
 			Game::instance->game_s->player->yaw = -249.8f;
 		}
@@ -598,10 +600,8 @@ void GameStage::render()
 			Matrix44 enemyModel = Matrix44();
 			enemyModel.translate(enemies[i]->pos.x, enemies[i]->pos.y, enemies[i]->pos.z);
 			enemyModel.scale(enemies[i]->scale, enemies[i]->scale, enemies[i]->scale);
-			//float ang = acos(clamp(enemyModel.frontVector().normalize().dot(to_target.normalize()), -1.0f, 1.0f));
 			enemyModel.rotate(enemies[i]->yaw * DEG2RAD, Vector3(0, 1, 0));
 			enemies[i]->model = enemyModel;
-			//RenderMesh(/*GL_TRIANGLES, */enemies[i]->model, enemies[i]->mesh, enemies[i]->texture, a_shader, cam);
 			a_shader->enable();
 			Texture* tex = enemies[i]->texture;
 			
@@ -691,7 +691,7 @@ void GameStage::render()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if (!menu) {
-		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA)) {
+		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA) || (obj == LVLUP && Stage_ID != ARENA)) {
 			if(!interaction) RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 		}
 		if (interaction)
@@ -757,14 +757,20 @@ void GameStage::render()
 				},
 				player->pos,
 				player->yaw,
-				Stage_ID
+				Stage_ID,
+				diff
 			};
 			saveGame("file1",current_data);
-			cout << "Game Saved!" << endl;
+			//cout << "Game Saved!" << endl;
 		} //SAVE BUTTON
 		if (RenderButton(400, 393, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			Game::instance->scene = INTRO;
 			Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+			if (!existsSavedFile("data/saveFiles/file1.stats")) {
+				Game::instance->game_s->Stage_ID = MAP;
+
+			}
+			mapSwap = true;
 			menu = false;
 		}//MAIN MENU BUTTON
 		
@@ -787,7 +793,6 @@ void GameStage::render()
 								break;
 							case 1:
 								drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
-							
 								break;
 							default:
 								nextText = 0;
@@ -960,6 +965,7 @@ void GameStage::update(float elapsed_time)
 				LoadEnemiesInScene("data/enemies3.scene", &enemies);
 			}
 			lvl++;
+			diff++;
 			player->pos = Vector3(37.41f, 0.0f, -27.66f);
 			player->yaw = -435.6f;
 			terrain->texture = Texture::Get("data/sand.tga");
@@ -1076,7 +1082,6 @@ void GameStage::update(float elapsed_time)
 							cout << "Enemy current health: " << currentEnemy->hp << endl;
 							cooldown = 2.0f;
 							waitTime = 0.0f;
-							cout << "Cooldown started: " << cooldown << endl;
 							durationTime = 0.75f;
 						}
 						else if (waitTime >= 5.0f) {
@@ -1167,8 +1172,8 @@ void GameStage::update(float elapsed_time)
 				if (enemies.size() <= 0) {
 					mapSwap = true;
 					previous_stage = Stage_ID;
-					if (obj == TUTORIAL) list.third = true;
-					else obj = LVLUP;
+					if (obj != TUTORIAL) obj = LVLUP;
+					list.third = true;
 					Stage_ID = MAP;
 
 				}
@@ -1213,7 +1218,7 @@ void GameStage::update(float elapsed_time)
 					if (ret.colision) {
 						nexPos = ret.modifiedPosition;
 						isBattle = true;
-						currentEnemy = new EnemyAI(3, enemies[i], 2);
+						currentEnemy = new EnemyAI(2 + diff, enemies[i], 1 + diff);
 						currentEnemy->GenerateAttacks();
 						enemies[i]->pos = Vector3(51.8f, 0.0f, -22.9f); //Center for enemy
 						nexPos = Vector3(51.7f, 0.0f, -21.9f); //Center for player

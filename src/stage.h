@@ -122,7 +122,7 @@ public:
 	float parry = 0.0f;
 	bool mapSwap = true, yAxisCam = false, isBattle = false, debug = false, parried = false, menu = false, interaction = false, lvlUpMenu = false;
 	int nextText = 0;
-	int lvl = 0;
+	int lvl = 0, diff = 0;
 	float tiling = 20.0f, waitTime = 0.0f;
 
 	void render();
