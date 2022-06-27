@@ -51,6 +51,7 @@ public:
 	float scale;
 	float pitch;
 	float yaw;
+	int id;
 
 	EntityMesh(){
 		name = "";

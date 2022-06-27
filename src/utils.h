@@ -12,6 +12,7 @@ using namespace std;
 
 #include "includes.h"
 #include "framework.h"
+#include "animation.h"
 
 //Enum posiciones
 enum POSITION
@@ -55,6 +56,12 @@ struct DATA {
 	STAGE_ID curr_stage;
 	bool modified = false;
 };
+
+struct sANIMATION{
+	vector<Mesh*> idle_mesh, up_mesh, right_mesh, left_mesh, down_mesh;
+	vector<Animation*> idle_attack, up_attack, right_attack, left_attack, down_attack;
+};
+
 //General functions **************
 long getTime();
 bool readFile(const std::string& filename, std::string& content);
@@ -69,7 +76,7 @@ DATA loadGame(const char* filename);
 void deleteSavedFile(const char* filename);
 bool existsSavedFile(const char* filename);
 void PlayGameSound(const char* filename, bool restart);
-
+sANIMATION getAnimation(const char* filepath);
 
 //generic purposes fuctions
 void drawGrid();

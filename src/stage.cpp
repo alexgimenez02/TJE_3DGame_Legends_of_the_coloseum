@@ -4,12 +4,14 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include "animation.h"
 
 
 GLenum error;
 float rotationSpeedIntro  = 0.55f;
 float posx, posy, posz;
 string text = "Left_arrow";
+
 
 #pragma region SUPLEMENTARY_FUNCTION
 //Read scene file
@@ -97,6 +99,7 @@ void LoadEnemiesInScene(const char* fileName, vector<EntityMesh*> *enemies)
 			MeshPosition.y = sceneParser.getfloat();
 			MeshPosition.z = sceneParser.getfloat();
 			float meshScale = sceneParser.getfloat();
+			int id = sceneParser.getint();
 
 			string meshPath = "data/playermodels/" + meshName;
 			string texPath = "data/playermodels/" + texName;
@@ -107,6 +110,7 @@ void LoadEnemiesInScene(const char* fileName, vector<EntityMesh*> *enemies)
 			newEntity->name = meshName;
 			newEntity->pos = MeshPosition;
 			newEntity->scale = meshScale;
+			newEntity->id = id;
 			enemies->push_back(newEntity);
 		}
 	}
@@ -240,6 +244,7 @@ COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float e
 		return ret;
 	}
 
+	if(radius == 0.75f) cout << "Colision!" << endl;
 	Vector3 push_away = normalize(coll - character_center) * elapsed_time;
 	nexPos = (pos - push_away); //move to previous pos but a little bit further
 	//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
@@ -317,7 +322,6 @@ void IntroStage::render()
 			Game::instance->game_s->stats = load_game.player_stats;
 			Game::instance->game_s->player->pos = load_game.playerPosition;
 			Game::instance->game_s->player->yaw = load_game.playerYaw;
-			Game::instance->game_s->Stage_ID = load_game.curr_stage;
 		}
 		else{
 			Game::instance->game_s->player->pos = Vector3(30.12f, 0.0f, 16.88f);
@@ -329,9 +333,11 @@ void IntroStage::render()
 	{
 		Game::instance->scene = CONTROLS;
 		Game::instance->controls->cam = cam;
+		//cout << "Scene change" << endl;
 	}
 	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], Vector4(0, 0, 1, 1), textures_hover[2]))
 	{
+		//	cout << "Bye bye!" << endl;
 		Game::instance->must_exit = true;
 	}
 	if (existsSavedFile("data/saveFiles/file1.stats"))
@@ -346,6 +352,13 @@ void IntroStage::render()
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
+
+	//Render background
+
+	//para pintar quad
+	//pasar info al shader
+	//hacer draw call
+		
 	//draw title
 	drawText(75, 50, "Legends of the Colosseum", Vector3(0, 0, 0), 5);
 	
@@ -466,9 +479,30 @@ void ControlsStage::update(float elapsed_time)
 
 //GameStage
 
+void animate(Shader *a_shader, Animation *attack, Mesh *mesh, EnemyAI *currentEnemy, float durationTime, Camera *cam) {
+
+	Matrix44 enemyModel = Matrix44();
+	enemyModel.translate(currentEnemy->enemyEntity->pos.x, currentEnemy->enemyEntity->pos.y, currentEnemy->enemyEntity->pos.z);
+	enemyModel.scale(currentEnemy->enemyEntity->scale*0.65, currentEnemy->enemyEntity->scale * 0.65, currentEnemy->enemyEntity->scale * 0.65);
+	//float ang = acos(clamp(enemyModel.frontVector().normalize().dot(to_target.normalize()), -1.0f, 1.0f));
+	enemyModel.rotate(currentEnemy->enemyEntity->yaw * DEG2RAD, Vector3(0, 1, 0));
+
+	a_shader->enable();
+	attack->assignTime(durationTime + 0.6f);
+	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+	if (currentEnemy->enemyEntity->texture != NULL) {
+		a_shader->setUniform("u_texture", currentEnemy->enemyEntity->texture, 0);
+	}
+	a_shader->setUniform("u_tex_tiling", 1.0f);
+	a_shader->setUniform("u_model", enemyModel);
+	mesh->renderAnimated(GL_TRIANGLES, &attack->skeleton);
+	a_shader->disable();
+	currentEnemy->enemyEntity->model = enemyModel;
+}
+
 void GameStage::render()
 {
-
 	//set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -484,6 +518,23 @@ void GameStage::render()
 		for (size_t i = 0; i < entities.size(); i++)
 			RenderMesh(entities[i]->model, entities[i]->mesh, entities[i]->texture, shader, cam);
 	}
+
+	Texture* tex = Texture::Get("data/playermodels/Character.png");
+
+	/*Mesh* idle_mesh = Mesh::Get("data/animations/Character2/idle.mesh");
+	Mesh* up_mesh = Mesh::Get("data/animations/Character2/up.mesh");
+	Mesh* left_mesh = Mesh::Get("data/animations/Character2/left.mesh");
+	Mesh* right_mesh = Mesh::Get("data/animations/Character2/right.mesh");
+	Mesh* down_mesh = Mesh::Get("data/animations/Character2/damage.mesh");
+
+	Animation* idle_attack = Animation::Get("data/animations/Character2/idle.skanim");
+	Animation* up_attack = Animation::Get("data/animations/Character2/up.skanim");
+	Animation* right_attack = Animation::Get("data/animations/Character2/right.skanim");
+	Animation* left_attack = Animation::Get("data/animations/Character2/left.skanim");
+	Animation* down_attack = Animation::Get("data/animations/Character2/damage.skanim");*/
+
+	Shader* a_shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
+
 	Matrix44 playerModel;
 	playerModel.translate(player->pos.x, player->pos.y, player->pos.z);
 	playerModel.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
@@ -545,18 +596,128 @@ void GameStage::render()
 				RenderMesh(sphereArena->model, sphereArena->mesh, sphereArena->texture, shader, cam);
 			}
 		}
-		
 	}
 	if (Stage_ID == ARENA)
 	{
+		sANIMATION anim = Game::instance->sanimation;
 		for (size_t i = 0; i < enemies.size(); i++)
 		{
+			int x = enemies[i]->id;
 			Matrix44 enemyModel = Matrix44();
 			enemyModel.translate(enemies[i]->pos.x, enemies[i]->pos.y, enemies[i]->pos.z);
 			enemyModel.scale(enemies[i]->scale, enemies[i]->scale, enemies[i]->scale);
+			//float ang = acos(clamp(enemyModel.frontVector().normalize().dot(to_target.normalize()), -1.0f, 1.0f));
 			enemyModel.rotate(enemies[i]->yaw * DEG2RAD, Vector3(0, 1, 0));
 			enemies[i]->model = enemyModel;
-			RenderMesh(enemyModel, enemies[i]->mesh, enemies[i]->texture, shader, cam);
+			//RenderMesh(/*GL_TRIANGLES, */enemies[i]->model, enemies[i]->mesh, enemies[i]->texture, a_shader, cam);
+			a_shader->enable();
+			Texture* tex = enemies[i]->texture;
+			
+			anim.idle_attack[x]->assignTime(Game::instance->time);
+			a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+			a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+			if (tex != NULL) {
+				a_shader->setUniform("u_texture", tex, 0);
+			}
+			a_shader->setUniform("u_tex_tiling", 1.0f);
+			a_shader->setUniform("u_model", enemies[i]->model);
+
+			if (currentEnemy != NULL) {
+
+				if (enemies[i] != currentEnemy->enemyEntity) {
+					
+					anim.idle_mesh[x]->renderAnimated(GL_TRIANGLES, &anim.idle_attack[x]->skeleton);
+					Mesh* mesh = weapon.entity->mesh;
+					swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+					//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+					Matrix44 rightHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+					Matrix44 Total = rightHandLocalMatrix * enemies[i]->model;
+					Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+					RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+				}
+			}
+			else {
+				anim.idle_mesh[x]->renderAnimated(GL_TRIANGLES, &anim.idle_attack[x]->skeleton);
+				Mesh* mesh = weapon.entity->mesh;
+				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+				Matrix44 rightHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+				Matrix44 Total = rightHandLocalMatrix * enemies[i]->model;
+				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+			}
+
+			//RenderMesh(/*GL_TRIANGLES, */enemies[0]->model, idle_mesh, enemies[0]->texture, a_shader, cam);
+			a_shader->disable();
+
+		}
+
+		if (Attack == DOWN) {
+			int x = currentEnemy->enemyEntity->id;
+			animate(a_shader, anim.down_attack[x], anim.down_mesh[x], currentEnemy, durationTime, cam);
+			Mesh* mesh = weapon.entity->mesh;
+			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+			Matrix44 idleHandLocalMatrix = anim.down_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+			Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
+			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+
+		}
+		else if (Attack == NONE && isBattle) {
+			int x = currentEnemy->enemyEntity->id;
+			animate(a_shader, anim.idle_attack[x], anim.idle_mesh[x], currentEnemy, durationTime, cam);
+
+			Mesh* mesh = weapon.entity->mesh;
+			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+			Matrix44 idleHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+			Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
+			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+			
+		}
+		else if (Attack == UP) {
+			
+			int x = currentEnemy->enemyEntity->id;
+			animate(a_shader, anim.up_attack[x], anim.up_mesh[x], currentEnemy, durationTime, cam);
+
+			Mesh* mesh = weapon.entity->mesh;
+			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+			Matrix44 upHandLocalMatrix = anim.up_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+			Matrix44 Total = upHandLocalMatrix * currentEnemy->enemyEntity->model;
+			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+			
+		}
+		else if (Attack == LEFT) {
+			
+			int x = currentEnemy->enemyEntity->id;
+			animate(a_shader, anim.left_attack[x], anim.left_mesh[x], currentEnemy, durationTime, cam);
+
+			Mesh* mesh = weapon.entity->mesh;
+			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+			Matrix44 leftHandLocalMatrix = anim.left_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+			Matrix44 Total = leftHandLocalMatrix * currentEnemy->enemyEntity->model;
+			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+
+		}
+		else if (Attack == RIGHT) {
+			
+			int x = currentEnemy->enemyEntity->id;
+			animate(a_shader, anim.right_attack[x], anim.right_mesh[x], currentEnemy, durationTime, cam);
+
+			Mesh* mesh = weapon.entity->mesh;
+			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+			Matrix44 rightHandLocalMatrix = anim.right_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+			Matrix44 Total = rightHandLocalMatrix * currentEnemy->enemyEntity->model;
+			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+			
 		}
 		
 	}
@@ -569,6 +730,7 @@ void GameStage::render()
 			npc_model.rotate(barTender->yaw * DEG2RAD, Vector3(0, 1, 0));
 			barTender->model = npc_model;
 			RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam);
+			a_shader->enable();
 		}
 	}
 	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
@@ -581,7 +743,7 @@ void GameStage::render()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if (!menu) {
-		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA) || (obj == LVLUP && Stage_ID != ARENA)) {
+		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA)) {
 			if(!interaction) RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 		}
 		if (interaction)
@@ -600,7 +762,6 @@ void GameStage::render()
 				interaction = false;
 			}
 		}
-		//lvl up menu
 		if (lvlUpMenu) {
 			RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
 			if (stats.strength < 5) {
@@ -635,10 +796,9 @@ void GameStage::render()
 	}
 	else {
 		RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
-		//RESUME BUTTON
 		if (RenderButton(400, 220, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			menu = !menu;
-		} //SAVE BUTTON
+		} //RESUME BUTTON
 		if (RenderButton(400, 307, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			//Call save function
 			DATA current_data = {
@@ -653,17 +813,12 @@ void GameStage::render()
 			};
 			saveGame("file1",current_data);
 			cout << "Game Saved!" << endl;
-		} //MAIN MENU BUTTON
+		} //SAVE BUTTON
 		if (RenderButton(400, 393, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			Game::instance->scene = INTRO;
 			Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
-			if (!existsSavedFile("data/saveFiles/file1.stats")) {
-				Game::instance->game_s->Stage_ID = MAP;
-
-			}
-			mapSwap = true;
 			menu = false;
-		}
+		}//MAIN MENU BUTTON
 		
 		drawText(134, 94, "GAME PAUSED", Vector3(0, 0, 0), 8);
 		drawText(316, 201, "Resume", Vector3(0, 0, 0), 5);
@@ -951,11 +1106,14 @@ void GameStage::update(float elapsed_time)
 				if (currentEnemy->hp > 0) {
 					if (currentEnemy->EmptyAttacks()) {
 						//Wait until hit
+						if (cooldown <= 0) Attack = NONE;
 						if (weapon.attacked) {
+							Attack = DOWN;
 							currentEnemy->GenerateAttacks();
 							currentEnemy->hp -= stats.strength;
 							cout << "Enemy current health: " << currentEnemy->hp << endl;
 							weapon.attacked = false;
+							cooldown = 1.5f;
 						}
 						else if (waitTime >= 5.0f) {
 							currentEnemy->GenerateAttacks();
@@ -965,28 +1123,34 @@ void GameStage::update(float elapsed_time)
 							waitTime += elapsed_time;
 						}
 					}
-					else {
+					else if (cooldown <= 0) {
 						POSITION nextAttack = currentEnemy->GetNextAttack();
 						//Animaciones enemigo
-						if (nextAttack == UP) {
-							//Animacion up 
-							cout << "UP" << endl;
+						if (nextAttack == UP ) {
+							//Animacion up
+							parried = true;
+							cout << "UP" << endl;	
 						}
 						else if (nextAttack == LEFT) {
 							//Animacion left
+							parried = true;
 							cout << "LEFT" << endl;
+							
 						}
 						else {
-							//Animacion right
+							parried = true;
 							cout << "RIGHT" << endl;
 						}
-						if (curr_SFX_channel != 0) 
+						Attack = nextAttack;
+						durationTime = 0.0f;
+
+						if (curr_SFX_channel != 0)
 							Audio::Stop(curr_SFX_channel);
-					
+
 						switch (nextAttack) {
 						case UP:
-								
-							if(parried) currentSFX = BASS_SampleLoad(false, Game::instance->audios[0].c_str(), 0, 0, 3, 0);
+
+							if (parried) currentSFX = BASS_SampleLoad(false, Game::instance->audios[0].c_str(), 0, 0, 3, 0);
 							else currentSFX = BASS_SampleLoad(false, Game::instance->audios[3].c_str(), 0, 0, 3, 0);
 							if (currentSFX == 0) {
 								cout << "Error audio not found!" << endl;
@@ -1012,10 +1176,13 @@ void GameStage::update(float elapsed_time)
 							break;
 
 						}
-						if(!parried) stats.missing_hp += 1 - (0.4f + stats.resistance);
-						
+						if (cooldown <= 0) {
+							if (!parried) stats.missing_hp += 1 - (0.4f + stats.resistance);
+						}
+
 						BASS_ChannelPlay(curr_SFX_channel, false);
-						parried = true;
+						parried = false;
+						cooldown = 2.0f;
 					}
 				}
 				else {
@@ -1033,8 +1200,8 @@ void GameStage::update(float elapsed_time)
 				if (enemies.size() <= 0) {
 					mapSwap = true;
 					previous_stage = Stage_ID;
-					if (obj != TUTORIAL) obj = LVLUP;
-					list.third = true;
+					if (obj == TUTORIAL) list.third = true;
+					else obj = LVLUP;
 					Stage_ID = MAP;
 
 				}
@@ -1093,8 +1260,7 @@ void GameStage::update(float elapsed_time)
 
 		}
 		if (stats.missing_hp >= 1.0f) {
-			isBattle = false;
-			Stage_ID = MAP;
+			
 			Game::instance->gameOver->cam = Game::instance->camera;
 			Game::instance->gameOver->entities = entities;
 			Game::instance->gameOver->enemies = enemies;
@@ -1276,6 +1442,9 @@ void GameStage::update(float elapsed_time)
 
 	}
 	if(!mapSwap) previous_stage = Stage_ID;
+	durationTime += elapsed_time*0.75;
+	cooldown -= elapsed_time*0.75;
+	parry -= elapsed_time*0.75;
 }
 
 //GameOverStage
@@ -1327,10 +1496,7 @@ void GameOverStage::render()
 	RenderGUI(halfWidth, halfHeight, winWidth, winHeight, gui_shader, Texture::Get("data/gray_background.png"), Vector4(1,1,1,1));
 	RenderGUI(halfWidth, 191.7, winWidth, 100, gui_shader, Texture::Get("data/black_bar.png"), Vector4(1, 1, 1, 1));
 	if (RenderButton(395, 445, 250, 75, shader, Texture::Get("data/iconTextures/Back Button.png"), Vector4(1, 1, 1, 1), Texture::Get("data/iconTextures/Back  hover.png"))) {
-		
 		Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
-		Game::instance->InitGameStage();
-
 		Game::instance->scene = INTRO;
 	}
 	glEnable(GL_DEPTH_TEST);
