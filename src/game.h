@@ -61,6 +61,15 @@ public:
 	void onGamepadButtonUp(SDL_JoyButtonEvent event);
 	void onResize(int width, int height);
 
+	void InitIntroStage();
+
+	void InitControlsStage();
+
+	void InitGameStage();
+
+	void InitGameOver();
+
+
 };
 
 

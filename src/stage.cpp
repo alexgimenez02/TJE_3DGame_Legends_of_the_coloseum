@@ -483,7 +483,7 @@ void animate(Shader *a_shader, Animation *attack, Mesh *mesh, EnemyAI *currentEn
 
 	Matrix44 enemyModel = Matrix44();
 	enemyModel.translate(currentEnemy->enemyEntity->pos.x, currentEnemy->enemyEntity->pos.y, currentEnemy->enemyEntity->pos.z);
-	enemyModel.scale(currentEnemy->enemyEntity->scale*0.65, currentEnemy->enemyEntity->scale * 0.65, currentEnemy->enemyEntity->scale * 0.65);
+	enemyModel.scale(currentEnemy->enemyEntity->scale, currentEnemy->enemyEntity->scale, currentEnemy->enemyEntity->scale);
 	//float ang = acos(clamp(enemyModel.frontVector().normalize().dot(to_target.normalize()), -1.0f, 1.0f));
 	enemyModel.rotate(currentEnemy->enemyEntity->yaw * DEG2RAD, Vector3(0, 1, 0));
 
@@ -520,18 +520,6 @@ void GameStage::render()
 	}
 
 	Texture* tex = Texture::Get("data/playermodels/Character.png");
-
-	/*Mesh* idle_mesh = Mesh::Get("data/animations/Character2/idle.mesh");
-	Mesh* up_mesh = Mesh::Get("data/animations/Character2/up.mesh");
-	Mesh* left_mesh = Mesh::Get("data/animations/Character2/left.mesh");
-	Mesh* right_mesh = Mesh::Get("data/animations/Character2/right.mesh");
-	Mesh* down_mesh = Mesh::Get("data/animations/Character2/damage.mesh");
-
-	Animation* idle_attack = Animation::Get("data/animations/Character2/idle.skanim");
-	Animation* up_attack = Animation::Get("data/animations/Character2/up.skanim");
-	Animation* right_attack = Animation::Get("data/animations/Character2/right.skanim");
-	Animation* left_attack = Animation::Get("data/animations/Character2/left.skanim");
-	Animation* down_attack = Animation::Get("data/animations/Character2/damage.skanim");*/
 
 	Shader* a_shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
 
@@ -651,74 +639,76 @@ void GameStage::render()
 			a_shader->disable();
 
 		}
+		if (currentEnemy != NULL) {
+			if (Attack == DOWN) {
+				int x = currentEnemy->enemyEntity->id;
+				animate(a_shader, anim.down_attack[x], anim.down_mesh[x], currentEnemy, durationTime, cam);
+				Mesh* mesh = weapon.entity->mesh;
+				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+				Matrix44 idleHandLocalMatrix = anim.down_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+				Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
+				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
 
-		if (Attack == DOWN) {
-			int x = currentEnemy->enemyEntity->id;
-			animate(a_shader, anim.down_attack[x], anim.down_mesh[x], currentEnemy, durationTime, cam);
-			Mesh* mesh = weapon.entity->mesh;
-			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-			Matrix44 idleHandLocalMatrix = anim.down_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-			Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
-			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+			}
+			else if (Attack == NONE && isBattle) {
+				int x = currentEnemy->enemyEntity->id;
+				animate(a_shader, anim.idle_attack[x], anim.idle_mesh[x], currentEnemy, durationTime, cam);
 
+				Mesh* mesh = weapon.entity->mesh;
+				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+				Matrix44 idleHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+				Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
+				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+
+			}
+			else if (Attack == UP) {
+
+				int x = currentEnemy->enemyEntity->id;
+				animate(a_shader, anim.up_attack[x], anim.up_mesh[x], currentEnemy, durationTime, cam);
+
+				Mesh* mesh = weapon.entity->mesh;
+				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+				Matrix44 upHandLocalMatrix = anim.up_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+				Matrix44 Total = upHandLocalMatrix * currentEnemy->enemyEntity->model;
+				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+
+			}
+			else if (Attack == LEFT) {
+
+				int x = currentEnemy->enemyEntity->id;
+				animate(a_shader, anim.left_attack[x], anim.left_mesh[x], currentEnemy, durationTime, cam);
+
+				Mesh* mesh = weapon.entity->mesh;
+				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+				Matrix44 leftHandLocalMatrix = anim.left_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+				Matrix44 Total = leftHandLocalMatrix * currentEnemy->enemyEntity->model;
+				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+
+			}
+			else if (Attack == RIGHT) {
+
+				int x = currentEnemy->enemyEntity->id;
+				animate(a_shader, anim.right_attack[x], anim.right_mesh[x], currentEnemy, durationTime, cam);
+
+				Mesh* mesh = weapon.entity->mesh;
+				swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
+				//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
+				Matrix44 rightHandLocalMatrix = anim.right_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
+				Matrix44 Total = rightHandLocalMatrix * currentEnemy->enemyEntity->model;
+				Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
+				RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
+
+			}
 		}
-		else if (Attack == NONE && isBattle) {
-			int x = currentEnemy->enemyEntity->id;
-			animate(a_shader, anim.idle_attack[x], anim.idle_mesh[x], currentEnemy, durationTime, cam);
-
-			Mesh* mesh = weapon.entity->mesh;
-			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-			Matrix44 idleHandLocalMatrix = anim.idle_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-			Matrix44 Total = idleHandLocalMatrix * currentEnemy->enemyEntity->model;
-			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
-			
-		}
-		else if (Attack == UP) {
-			
-			int x = currentEnemy->enemyEntity->id;
-			animate(a_shader, anim.up_attack[x], anim.up_mesh[x], currentEnemy, durationTime, cam);
-
-			Mesh* mesh = weapon.entity->mesh;
-			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-			Matrix44 upHandLocalMatrix = anim.up_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-			Matrix44 Total = upHandLocalMatrix * currentEnemy->enemyEntity->model;
-			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
-			
-		}
-		else if (Attack == LEFT) {
-			
-			int x = currentEnemy->enemyEntity->id;
-			animate(a_shader, anim.left_attack[x], anim.left_mesh[x], currentEnemy, durationTime, cam);
-
-			Mesh* mesh = weapon.entity->mesh;
-			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-			Matrix44 leftHandLocalMatrix = anim.left_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-			Matrix44 Total = leftHandLocalMatrix * currentEnemy->enemyEntity->model;
-			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
-
-		}
-		else if (Attack == RIGHT) {
-			
-			int x = currentEnemy->enemyEntity->id;
-			animate(a_shader, anim.right_attack[x], anim.right_mesh[x], currentEnemy, durationTime, cam);
-
-			Mesh* mesh = weapon.entity->mesh;
-			swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-			//swordModel.rotate(180.0f * DEG2RAD, Vector3(0, 1, 0));
-			Matrix44 rightHandLocalMatrix = anim.right_attack[x]->skeleton.getBoneMatrix("mixamorig_RightHand", false);
-			Matrix44 Total = rightHandLocalMatrix * currentEnemy->enemyEntity->model;
-			Total.scale(1 / 3.0f, 1 / 3.0f, 1 / 3.0f);
-			RenderMesh(/*GL_TRIANGLES, */Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
-			
-		}
+		
 		
 	}
 	if (Stage_ID == TABERN)
@@ -996,6 +986,7 @@ void GameStage::update(float elapsed_time)
 			Sleep(250);
 			break;
 		case ARENA:
+			enemies.clear();
 			LoadSceneFile("data/ArenaJordiAlex.scene", &entities, &entitiesColision);
 			LoadEnemiesInScene("data/enemies.scene", &enemies);
 			player->pos = Vector3(37.41f, 0.0f, -27.66f);
@@ -1445,6 +1436,11 @@ void GameStage::update(float elapsed_time)
 	durationTime += elapsed_time*0.75;
 	cooldown -= elapsed_time*0.75;
 	parry -= elapsed_time*0.75;
+
+	if (Input::wasKeyPressed(SDL_SCANCODE_COMMA)) {
+		enemies.clear();
+		LoadEnemiesInScene("data/enemies.scene", &enemies);
+	}
 }
 
 //GameOverStage
