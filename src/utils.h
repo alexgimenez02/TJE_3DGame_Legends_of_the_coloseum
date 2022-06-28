@@ -56,6 +56,7 @@ struct DATA {
 	STAGE_ID curr_stage;
 	bool modified = false;
 	int diff = 0;
+	int battleFile = 0;
 };
 
 struct sANIMATION{

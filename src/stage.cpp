@@ -348,12 +348,10 @@ void IntroStage::render()
 			Game::instance->game_s->player->yaw = load_game.playerYaw;
 			Game::instance->game_s->Stage_ID = load_game.curr_stage;
 			Game::instance->game_s->diff = load_game.diff;
+			Game::instance->game_s->lvl = load_game.battleFile;
 		}
 		else{
-			Game::instance->game_s->Stage_ID = MAP;
-			Game::instance->game_s->mapSwap = true;
-			Game::instance->game_s->player->pos = Vector3(30.12f, 0.0f, 16.88f);
-			Game::instance->game_s->player->yaw = -249.8f;
+			Game::instance->InitGameStage();
 		}
 		//cout << "Let's game" << endl;
 	}
@@ -409,9 +407,6 @@ void IntroStage::update(float elapsed_time)
 	//if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << "Camera rotation speed = " << rotationSpeedIntro << endl;
 	//async input to move the camera around
     cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
-	posx = Input::mouse_position.x;
-	posy = Input::mouse_position.y;
-	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << posx << "," << posy << endl;
 
 	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) reloadIcons();
 }
@@ -462,6 +457,37 @@ void ControlsStage::render()
 	bool click = 1.5f * sin(2.0f * Game::instance->time) > 0;
 	if(!click) RenderGUI(586.699, 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse_icon.png"), Vector4(0, 0, 1, 1));
 	else RenderGUI(586.699, 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse__left_click_icon.png"), Vector4(0, 0, 1, 1));
+	bool mute = Game::instance->volume == 0.0f;
+	if (mute) {
+		if (RenderButton(387, 295, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Audio col_Square Button.png"), Vector4(0, 0, 1, 1))) {
+			Game::instance->volume = previous_volume;
+		}
+	}
+	else {
+		if (RenderButton(387, 295, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Audio Square Button.png"), Vector4(0, 0, 1, 1))){
+			previous_volume = Game::instance->volume;
+			Game::instance->volume = 0.0f;
+		}
+	}
+	if (mute) {
+		RenderGUI(387, 378, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Down col_Square Button.png"), Vector4(0, 0, 1, 1));
+	}
+	else {
+		if (RenderButton(387, 378, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Down Square Button.png"), Vector4(0, 0, 1, 1))) {
+			Game::instance->volume -= 0.1f;
+			if (Game::instance->volume <= 0.0f) Game::instance->volume = 0.0f;
+		}
+	}
+	if (Game::instance->volume == 1.0f) {
+		RenderGUI(387, 208, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Up col_Square Button.png"),Vector4(0,0,1,1));
+	}
+	else {
+		if (RenderButton(387, 208, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Up Square Button.png"), Vector4(0, 0, 1, 1))) {
+			Game::instance->volume += 0.1f;
+			if (Game::instance->volume >= 1.0f) Game::instance->volume = 1.0f;
+		}
+
+	}
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
@@ -487,13 +513,11 @@ void ControlsStage::update(float elapsed_time)
 
 	//mouse input to rotate the cam
 	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f));
-
-	if (Input::isKeyPressed(SDL_SCANCODE_UP)) posy -= 50.0f * elapsed_time;
-	if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) posy += 50.0f * elapsed_time;
-	if(Input::isKeyPressed(SDL_SCANCODE_LEFT)) posx -= 50.0f * elapsed_time;
-	if(Input::isKeyPressed(SDL_SCANCODE_RIGHT)) posx += 50.0f * elapsed_time;
-
-	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << "Position: " << posx << ", " << posy << endl;
+	
+	
+	posx = Input::mouse_position.x;
+	posy = Input::mouse_position.y;
+	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << posx << "," << posy << endl;
 	//if (Input::wasKeyPressed(SDL_SCANCODE_RETURN)) cin >> text;
 	//async input to move the camera around
 	cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
@@ -699,7 +723,7 @@ void GameStage::render()
 		if (list.third && interaction && nextText > 0) {
 			if (RenderButton(290, 537, 150, 80, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 				list.third = false;
-				lvlUpMenu = true;
+				if(!(stats.resistance == 0.5f && stats.strength == 5)) lvlUpMenu = true;
 				nextText = 0;
 				obj = LVLUP;
 				interaction = false;
@@ -758,7 +782,8 @@ void GameStage::render()
 				player->pos,
 				player->yaw,
 				Stage_ID,
-				diff
+				diff,
+				lvl
 			};
 			saveGame("file1",current_data);
 			//cout << "Game Saved!" << endl;
@@ -767,8 +792,8 @@ void GameStage::render()
 			Game::instance->scene = INTRO;
 			Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
 			if (!existsSavedFile("data/saveFiles/file1.stats")) {
+				Game::instance->InitGameStage();
 				Game::instance->game_s->Stage_ID = MAP;
-
 			}
 			mapSwap = true;
 			menu = false;
@@ -1465,6 +1490,7 @@ void GameOverStage::render()
 	RenderGUI(halfWidth, halfHeight, winWidth, winHeight, gui_shader, Texture::Get("data/gray_background.png"), Vector4(1,1,1,1));
 	RenderGUI(halfWidth, 191.7, winWidth, 100, gui_shader, Texture::Get("data/black_bar.png"), Vector4(1, 1, 1, 1));
 	if (RenderButton(395, 445, 250, 75, shader, Texture::Get("data/iconTextures/Back Button.png"), Vector4(1, 1, 1, 1), Texture::Get("data/iconTextures/Back  hover.png"))) {
+		Game::instance->InitGameStage();
 		Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
 		Game::instance->scene = INTRO;
 	}

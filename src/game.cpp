@@ -44,7 +44,6 @@ EntityMesh* SelectedEntity;
 
 bool mapSwap = false;
 
-
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
 	this->window_width = window_width;
@@ -89,6 +88,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 		cout << "Error audio not found!" << endl;
 	}
 	currentChannel = BASS_SampleGetChannel(currentSound, false);
+	
+
 
 	BASS_ChannelPlay(currentChannel, true);
 	//current_song = songs[1];
@@ -130,68 +131,6 @@ void Game::render(void)
 
 
 	current_stage->render();
-
-	//set flags
-	/*
-	glDisable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-	//create model matrix for cube
-	//Camera* cam = Game::instance->camera;
-	
-	if (!meshes.empty())
-	{
-		for (size_t i = 0; i < meshes.size(); i++)
-		{
-			//RenderMesh(meshes[i]->model, meshes[i]->mesh, meshes[i]->texture, shader, cam);
-		}
-	}
-	Matrix44 playerModel;
-	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
-	playerModel.rotate(player.yaw * DEG2RAD, Vector3(0, 1, 0));
-	//set the camera as default
-	//Parentar model --> Offset respecte player que defineix on esta l'arma
-	Matrix44 swordModel;
-	Matrix44 camModel;
-	if (cameraLocked) {
-		camModel = playerModel;
-		camModel.rotate(player.pitch * DEG2RAD, Vector3(1, 0, 0));
-		Vector3 eye = playerModel * Vector3(0.1f, 0.45f, 2.25f);
-		Vector3 center = camera->center;
-		if(!yAxisCam)
-			center = eye + camModel.rotateVector(Vector3(0,0,1));
-		Vector3 up = camModel.rotateVector(Vector3(0,1,0));
-		camera->enable();
-		camera->lookAt(eye, center, up);
-	}
-	Vector3 swordOffset = Vector3(-0.05f,0.25f ,2.6f);
-	swordModel.setTranslation(swordOffset.x, swordOffset.y, swordOffset.z);
-	swordModel.rotate(-90.0f * DEG2RAD, Vector3(0, 1, 0));
-	swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-	swordModel = swordModel * playerModel;
-	if (defType != NONE)
-	{
-		if(defType == UP)
-		{
-			//motion defence up
-			swordModel.translate(0.0f, defenceMotionUp, defenceMotion);
-			swordModel.rotate(defenceRotation * DEG2RAD, Vector3(1, 0, 0));
-		}
-		else
-		{
-			swordModel.translate(0.0f, 0.0f, defenceMotion);
-		}
-	}
-	if (movementMotion)
-	{
-		Matrix44 T;
-		T.setTranslation(0.0f, 0.025f * sin(time) + 0.05f, 0.0f);
-		swordModel = swordModel * T;
-	}
-	swordModel.rotate(attackMotion * DEG2RAD, Vector3(0, 0, 1));
-	*/
-	//RenderMesh(swordModel, sword.mesh, sword.texture, shader, cam);
-	//RenderPlane(20.0f);
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
@@ -328,6 +267,7 @@ void Game::update(double seconds_elapsed)
 		*/
 		break;
 	}
+	BASS_ChannelSetAttribute(currentChannel, BASS_ATTRIB_VOL, volume);
 }
 
 //Keyboard event handler (sync input)

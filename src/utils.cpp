@@ -319,7 +319,8 @@ void saveGame(const char* filename, DATA game_data)
 	MyFile << "POS: " << game_data.playerPosition.x << " " << game_data.playerPosition.y << " " << game_data.playerPosition.z << endl;
 	MyFile << "YAW: " << game_data.playerYaw << endl;
 	MyFile << "STAGE: " << game_data.curr_stage << endl;
-	MyFile << "DIFF: " << game_data.diff;
+	MyFile << "DIFF: " << game_data.diff << endl;
+	MyFile << "LVL: " << game_data.battleFile;
 
 	MyFile.close();
 }
@@ -350,6 +351,8 @@ DATA loadGame(const char* filename) {
 			ret.curr_stage = (STAGE_ID) sceneParser.getint();
 		if (sceneParser.getword() == string::basic_string("DIFF:"))
 			ret.diff = sceneParser.getint();
+		if (sceneParser.getword() == string::basic_string("LVL:"))
+			ret.battleFile = sceneParser.getint();
 	}
 	ret.modified = true;
 	cout << "File loaded correctly!" << endl;

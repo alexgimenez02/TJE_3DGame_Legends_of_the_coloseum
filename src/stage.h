@@ -61,6 +61,7 @@ public:
 	vector<Texture*> textures;
 	vector<ICON_POSITION> positions;
 
+	float volume = 0.3f, previous_volume = 0.3f;
 	Shader* a_shader;
 	EntityMap* terrain, * sky;
 	EntityMesh* colosseum;
