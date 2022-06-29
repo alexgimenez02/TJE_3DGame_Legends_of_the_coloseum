@@ -65,9 +65,7 @@
       <Filter>extra</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\entity.cpp" />
-    <ClCompile Include="..\..\src\scene.cpp" />
     <ClCompile Include="..\..\src\stage.cpp" />
-    <ClCompile Include="..\..\src\world.cpp" />
     <ClCompile Include="..\..\src\enemyAI.cpp" />
     <ClCompile Include="..\..\src\audio.cpp" />
   </ItemGroup>
@@ -132,9 +130,7 @@
       <Filter>extra</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\entity.h" />
-    <ClInclude Include="..\..\src\scene.h" />
     <ClInclude Include="..\..\src\stage.h" />
-    <ClInclude Include="..\..\src\world.h" />
     <ClInclude Include="..\..\src\enemyAI.h" />
     <ClInclude Include="..\..\src\audio.h" />
   </ItemGroup>

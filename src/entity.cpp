@@ -3,14 +3,6 @@
 
 //Entity
 
-void Entity::addChild(Entity* ent)
-{
-}
-
-void Entity::removeChild(Entity* ent)
-{
-}
-
 //get the global transformation of this object (not the relative to the parent)
 //this function uses recursivity to crawl the tree upwards
 Matrix44 Entity::getGlobalMatrix()
@@ -25,17 +17,12 @@ void Entity::destroy()
     this->~Entity();
 }
 
-Vector3 Entity::getPosition()
-{
-    return Vector3();
-}
-
 
 
 
 
 //EntityMesh
-void EntityMesh::render()
+void EntityMesh::render() //Render for the normal entities
 {
     assert(mesh != NULL, "mesh in EntityMesh::render() was null");
 
@@ -51,11 +38,6 @@ void EntityMesh::render()
     shader->setTexture("u_texture", texture,0);
 
     //render the mesh using the shader
-    // 
-    // 
-    /*for (int i = 0; i < children.size(); i++)
-        children[i]->render();  //repeat for every child
-    */
     mesh->render(GL_TRIANGLES);
 
     //disable the shader after finishing rendering
@@ -69,7 +51,7 @@ void EntityMesh::update(float elapsed_time)
 
 //EntityMap
 
-void EntityMap::render()
+void EntityMap::render() //Render for the map entity
 {
     if (shader)
     {

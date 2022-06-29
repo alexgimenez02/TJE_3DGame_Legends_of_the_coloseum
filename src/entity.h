@@ -27,14 +27,8 @@ public:
 	virtual void render() = 0;
 	virtual void update(float elapsed_time) = 0;
 
-
-	//methods
-	void addChild(Entity* ent);
-	void removeChild(Entity* ent);
-
 	Matrix44 getGlobalMatrix(); //returns transform in world coordinates
 	void destroy(); //destroy the entity and its children
-	Vector3 getPosition();
 
 };
 

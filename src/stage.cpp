@@ -81,7 +81,7 @@ void LoadSceneFile(const char* fileName, vector<EntityMesh*> *entities, vector<E
 		}
 	}
 }
-void LoadEnemiesInScene(const char* fileName, vector<EntityMesh*> *enemies)
+void LoadEnemiesInScene(const char* fileName, vector<EntityMesh*> *enemies) //Loads enemies in file to scene
 {
 	TextParser sceneParser = TextParser();
 	if (!sceneParser.create(fileName)) return;
@@ -117,7 +117,6 @@ void LoadEnemiesInScene(const char* fileName, vector<EntityMesh*> *enemies)
 }
 //Render specified mesh
 void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam) {
-	//assert(a_mesh != null, "mesh in renderMesh was null");
 	if (!a_shader) return;
 
 	//enable shader
@@ -134,17 +133,16 @@ void RenderMesh(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Ca
 	a_shader->setUniform("u_tex_tiling", 1.0f);
 
 	a_shader->setUniform("u_model", model);
-	//a_mesh->renderBounding(model);
 	a_mesh->render(GL_TRIANGLES);
 
 	//disable shader
 	a_shader->disable();
-
-	// if (Camera::current) a_mesh->renderBounding(model);
-
+#ifdef _DEBUG
+	if (Camera::current) a_mesh->renderBounding(model);
+#endif
 
 }
-//
+//Renders the plane
 void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
 	if (a_shader)
 	{
@@ -159,8 +157,6 @@ void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 		a_shader->setUniform("u_tex_tiling", tiling);
 
 		Matrix44 m;
-		Vector3 size = a_mesh->box.halfsize * 2;
-		//m.setTranslation(size.x, 0.0f, size.z);
 		a_shader->setUniform("u_model", m);
 		//do the draw call
 		a_mesh->render(GL_TRIANGLES);
@@ -170,16 +166,17 @@ void RenderPlane(Matrix44 model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 		a_shader->disable();
 	}
 }
+//Renders the GUI element
 void RenderGUI(float x, float y, float w, float h, Shader* a_shader, Texture* tex, Vector4 tex_range, Vector4 color = Vector4(1, 1, 1, 1), bool flipUV = false) {
 	
-	int windowWidth = Game::instance->window_width;
-	int windowHeight = Game::instance->window_height;
+	int windowWidth = Game::instance->window_width; //Get the windowWidth
+	int windowHeight = Game::instance->window_height; //And height
 	
 	Mesh quad;
-	quad.createQuad(x, y, w, h, flipUV);
+	quad.createQuad(x, y, w, h, flipUV); //Create the quad
 
 	Camera cam2D;
-	cam2D.setOrthographic(0, windowWidth, windowHeight, 0, -1, 1);
+	cam2D.setOrthographic(0, windowWidth, windowHeight, 0, -1, 1); //The 2D camera
 
 	if (!a_shader)return;
 	a_shader->enable();
@@ -192,17 +189,14 @@ void RenderGUI(float x, float y, float w, float h, Shader* a_shader, Texture* te
 	a_shader->setUniform("u_time", time);
 	a_shader->setUniform("u_tex_range", tex_range);	
 	a_shader->setUniform("u_model", Matrix44());
-	quad.render(GL_TRIANGLES);
-
+	quad.render(GL_TRIANGLES); //Renders the quad
 
 	a_shader->disable();
-	
-
-
 }
+//Renders the button in GUI
 bool RenderButton(float x, float y, float w, float h, Shader* a_shader, Texture* tex,Vector4 tex_range, Texture* text_hover = NULL, bool flipUV = false)
 {
-	Vector2 mouse = Input::mouse_position;
+	Vector2 mouse = Input::mouse_position; //Check the mouse position
 	float halfWidth = w * 0.5f;
 	float halfHeight = h * 0.5f;
 	float min_x = x - halfWidth;
@@ -211,19 +205,20 @@ bool RenderButton(float x, float y, float w, float h, Shader* a_shader, Texture*
 	float max_y = y + halfHeight;
 
 
-	bool hover = mouse.x >= min_x && mouse.x <= max_x && mouse.y >= min_y && mouse.y <= max_y;
+	bool hover = mouse.x >= min_x && mouse.x <= max_x && mouse.y >= min_y && mouse.y <= max_y; //Check if the mouse is on top of the button
 	if (text_hover != NULL) {
 		Texture* texture = hover ? text_hover : tex;
-		RenderGUI(x, y, w, h, a_shader, texture, tex_range, Vector4(1,1,1,1), flipUV);
+		RenderGUI(x, y, w, h, a_shader, texture, tex_range, Vector4(1,1,1,1), flipUV); //If it has a texture for hover, use it
 	}
 	else {
-		Vector4 color = hover ? Vector4(1, 1, 1, 1) : Vector4(1, 1, 1, 0.7f);
+		Vector4 color = hover ? Vector4(1, 1, 1, 1) : Vector4(1, 1, 1, 0.7f); //If it does not have extra texture, just change the color 
 		RenderGUI(x, y, w, h, a_shader, tex, tex_range, color, flipUV);
 	}
 
-	bool pressed = Game::instance->wasLeftButtonPressed && hover;
+	bool pressed = Game::instance->wasLeftButtonPressed && hover; //Check if it was pressed
 	return pressed;
 }
+//Renders the animations
 void animate(Shader* a_shader, Animation* attack, Mesh* mesh, EnemyAI* currentEnemy, float durationTime, Camera* cam) {
 
 	Matrix44 enemyModel = Matrix44();
@@ -254,7 +249,7 @@ void animateWeapon(Shader* a_shader, Animation* attack, Matrix44 weaponModel, Ma
 	RenderMesh(Total, weapon.entity->mesh, weapon.entity->texture, a_shader, cam);
 }
 #pragma region COLISION
-COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float elapsed_time, float radius = 2.0f)
+COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float elapsed_time, float radius = 2.0f) //Checks the colisions
 {
 
 	COL_RETURN ret;
@@ -278,6 +273,7 @@ COL_RETURN CheckColision(Vector3 pos, Vector3 nexPos, EntityMesh* entity,float e
 	ret.modifiedPosition = nexPos;
 	return ret;
 }
+//Checks if the ray has colided with the Barman mesh
 bool CheckRayWithBarman(Camera* cam, EntityMesh* barman)
 {
 	Vector2 mouse = Input::mouse_position;
@@ -291,7 +287,7 @@ bool CheckRayWithBarman(Camera* cam, EntityMesh* barman)
 #pragma endregion COLISION
 
 #pragma region CROSSHAIR
-void drawCrosshair()
+void drawCrosshair() //Draws the crosshair in the center of the screen
 {
 	float scale = 5;
 	int half_width = Game::instance->window_width / 2;
@@ -299,9 +295,7 @@ void drawCrosshair()
 	drawText(half_width - 14, half_heigth - 5, "+", Vector3(0, 0, 0), scale);
 }
 #pragma endregion CROSSHAIR	
-#pragma endregion
 
-//IntroStage
 #pragma region COMPLEMENTARY_ICON_FUNCTIONS
 void IntroStage::reloadIcons()
 {
@@ -315,18 +309,19 @@ void IntroStage::reloadIcons()
 }
 #pragma endregion COMPLEMENTARY_ICON_FUNCTIONS
 
+//IntroStage
 void IntroStage::render()
 {
 
 	glDisable(GL_DEPTH_TEST);
-	sky->render();
+	sky->render(); //Render the skybox
 	glEnable(GL_DEPTH_TEST);
-	Matrix44 planeMatrix = Matrix44();
-	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, terrain->shader, cam, 200.0f);
-	Matrix44 coliseoMatrix = Matrix44();
+	Matrix44 planeMatrix = Matrix44(); //Plane matrix
+	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, terrain->shader, cam, 200.0f); //Renders the plane
+	Matrix44 coliseoMatrix = Matrix44(); //Coliseum matrix
 	coliseoMatrix.translate(0.0f, -2.0f, 0.0f);
-	coliseoMatrix.scale(75.0f, 75.0f, 75.0f);
-	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, terrain->shader, cam);
+	coliseoMatrix.scale(75.0f, 75.0f, 75.0f); //Set it in the position and scale
+	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, terrain->shader, cam); //Renders the coliseum
 	//GUI RENDER
 
 	// RenderAllGUI
@@ -335,10 +330,7 @@ void IntroStage::render()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
-	//RenderGUI(50,50,100,100,Texture::Get("data/grass.tga"));
-
-	if (RenderButton(positions[0].x, positions[0].y, 250, 75, a_shader, textures[0], Vector4(0, 0, 1, 1), textures_hover[0]))
+	if (RenderButton(positions[0].x, positions[0].y, 250, 75, a_shader, textures[0], Vector4(0, 0, 1, 1), textures_hover[0])) //Render the button for "Play"
 	{
 		Game::instance->scene = GAME;
 		DATA load_game = loadGame("data/saveFiles/file1.stats");
@@ -353,67 +345,51 @@ void IntroStage::render()
 		else{
 			Game::instance->InitGameStage();
 		}
-		//cout << "Let's game" << endl;
 	}
-	else if (RenderButton(positions[1].x, positions[1].y, 250, 75, a_shader, textures[1], Vector4(0, 0, 1, 1), textures_hover[1]))
+
+	else if (RenderButton(positions[1].x, positions[1].y, 250, 75, a_shader, textures[1], Vector4(0, 0, 1, 1), textures_hover[1])) //Renders the "Controls" button
 	{
 		Game::instance->scene = CONTROLS;
 		Game::instance->controls->cam = cam;
-		//cout << "Scene change" << endl;
 	}
-	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], Vector4(0, 0, 1, 1), textures_hover[2]))
+	else if (RenderButton(positions[2].x, positions[2].y, 250, 75, a_shader, textures[2], Vector4(0, 0, 1, 1), textures_hover[2])) //Renders the "Exti" button
 	{
-		//	cout << "Bye bye!" << endl;
 		Game::instance->must_exit = true;
 	}
-	if (existsSavedFile("data/saveFiles/file1.stats"))
+	if (existsSavedFile("data/saveFiles/file1.stats")) //If exists a save file
 	{
+		//Render the button to delete it
 		if (RenderButton(572, 300, 75, 75, a_shader, Texture::Get("data/iconTextures/Delete Button.png"), Vector4(0, 0, 1, 1),Texture::Get("data/iconTextures/Delete hover.png"))) {
 			deleteSavedFile("data/saveFiles/file1.stats");
 		}
 	}
-	RenderGUI(positions[3].x, positions[3].y, 805, 100, a_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+	RenderGUI(positions[3].x, positions[3].y, 805, 100, a_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1)); //Renders the panel that contains the title
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-
-
-	//Render background
-
-	//para pintar quad
-	//pasar info al shader
-	//hacer draw call
 		
 	//draw title
-	drawText(75, 50, "Legends of the Colosseum", Vector3(0, 0, 0), 5);
+	drawText(75, 50, "Legends of the Colosseum", Vector3(0, 0, 0), 5); //Renders the title text
 	
-
-	Camera::current = cam;
+	Camera::current = cam; //Changes the camera to the current for each iteration
 	
 }
 
 void IntroStage::update(float elapsed_time)
 {
-	//OPTION SELECTION
 	float speed = elapsed_time * 70.0f; //the speed is defined by the seconds_elapsed so it goes constant
-
-	//example
-
-	//mouse input to rotate the cam
-	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f));
-
-
-	//if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << "Camera rotation speed = " << rotationSpeedIntro << endl;
-	//async input to move the camera around
-    cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
-
-	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) reloadIcons();
+	//Camera orbitation
+	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f)); //Rotate the camera in the y axis
+    cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed); //Move the camera so it does not rotate in the same position and so it orbits
+#ifdef _DEBUG
+	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) reloadIcons(); //Only for debug
+#endif
 }
 
 //ControlsStage
 #pragma region COMPLEMENTARY_ICON_FUNCTIONS
-void ControlsStage::ReloadIcons() {
+void ControlsStage::ReloadIcons() { 
 	icons.clear();
 	positions.clear();
 	icons = get_all_files_names_within_folder();
@@ -423,44 +399,47 @@ void ControlsStage::ReloadIcons() {
 	}
 }
 #pragma endregion COMPLEMENTARY_ICON_FUNCTIONS
-void ControlsStage::render()
+void ControlsStage::render() //Follows the same principle as the Intro stage, just a background scene with UI
 {
 
 	glDisable(GL_DEPTH_TEST);
-	sky->render();
+	sky->render(); //Render the sky
 	glEnable(GL_DEPTH_TEST);
 	Matrix44 planeMatrix = Matrix44();
-	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, a_shader, cam, 20.0f);
+	RenderPlane(planeMatrix, terrain->mesh, terrain->texture, a_shader, cam, 20.0f); //Render the plane
 	Matrix44 coliseoMatrix = Matrix44();
 	coliseoMatrix.translate(0.0f, -2.0f, 0.0f);
 	coliseoMatrix.scale(75.0f, 75.0f, 75.0f);
-	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, a_shader, cam);
+	RenderMesh(coliseoMatrix, colosseum->mesh, colosseum->texture, a_shader, cam); //And the coliseum
 	
+	//Everything in the same position as the Intro stage left it
+	//Render All GUI
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-	//RenderGUI(50,50,100,100,Texture::Get("data/grass.tga"));
-	RenderGUI(403, 275, 805, 800, a_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+	
+	RenderGUI(403, 275, 805, 800, a_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1)); //Renders the panel that contains everything
 	for (size_t i = 0; i < icons.size(); i++)
 	{
-		RenderGUI(positions[i].x, positions[i].y, 50, 50, a_shader, textures[0], Vector4(0, 0, 1, 1));
+		RenderGUI(positions[i].x, positions[i].y, 50, 50, a_shader, textures[0], Vector4(0, 0, 1, 1)); //Add each little icon to the position
 	}
-	float move_mouse_x = 185.85, move_mouse_y = 406.851;
+	float move_mouse_x = 185.85; //Adds the position for the animated mouse icon
 	
-	RenderGUI(548.3, 259.201, 25, 25, a_shader, Texture::Get("data/controlsIconsTextures/Left_arrow.png"), Vector4(0, 0, 1, 1));
+	RenderGUI(548.3, 259.201, 25, 25, a_shader, Texture::Get("data/controlsIconsTextures/Left_arrow.png"), Vector4(0, 0, 1, 1)); //Adds the arrows for the controls
 	RenderGUI(651.697, 259.201, 25, 25, a_shader, Texture::Get("data/controlsIconsTextures/Right_arrow.png"), Vector4(0, 0, 1, 1));
 	RenderGUI(599.898, 259.201, 25, 25, a_shader, Texture::Get("data/controlsIconsTextures/Up_arrow.png"), Vector4(0, 0, 1, 1));
+	//Moves the mouse icon
 	RenderGUI((move_mouse_x + sin(2.0f * Game::instance->time) * 25.0f), 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse_icon.png"), Vector4(0, 0, 1, 1));
-	bool click = 1.5f * sin(2.0f * Game::instance->time) > 0;
+	bool click = 1.5f * sin(2.0f * Game::instance->time) > 0; //Swaps between the clicks and unclicked mouse
 	if(!click) RenderGUI(586.699, 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse_icon.png"), Vector4(0, 0, 1, 1));
 	else RenderGUI(586.699, 406.851, 100, 100, a_shader, Texture::Get("data/controlsIconsTextures/mouse__left_click_icon.png"), Vector4(0, 0, 1, 1));
+	//Volume manager (only music)
 	bool mute = Game::instance->volume == 0.0f;
+	//Mute button
 	if (mute) {
 		if (RenderButton(387, 295, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Audio col_Square Button.png"), Vector4(0, 0, 1, 1))) {
-			Game::instance->volume = previous_volume;
+			Game::instance->volume = previous_volume; 
 		}
 	}
 	else {
@@ -469,6 +448,7 @@ void ControlsStage::render()
 			Game::instance->volume = 0.0f;
 		}
 	}
+	//Lower volume button
 	if (mute) {
 		RenderGUI(387, 378, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Down col_Square Button.png"), Vector4(0, 0, 1, 1));
 	}
@@ -478,6 +458,7 @@ void ControlsStage::render()
 			if (Game::instance->volume <= 0.0f) Game::instance->volume = 0.0f;
 		}
 	}
+	//Higher volume button
 	if (Game::instance->volume == 1.0f) {
 		RenderGUI(387, 208, 80, 80, a_shader, Texture::Get("data/controlsIconsTextures/Up col_Square Button.png"),Vector4(0,0,1,1));
 	}
@@ -491,6 +472,7 @@ void ControlsStage::render()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
+	//Draws all the text in screen
 	drawText(300, 70, "Controls", Vector3(0, 0, 0), 5);
 	drawText(112.45f, 130.8f, "Movement:", Vector3(0, 0, 0), 3);
 	drawText(542.6, 130.75, "Actions:", Vector3(0, 0, 0), 3);
@@ -506,23 +488,17 @@ void ControlsStage::render()
 
 void ControlsStage::update(float elapsed_time)
 {
-	//mouse input to rotate the cam
 	float speed = elapsed_time * 70.0f; //the speed is defined by the seconds_elapsed so it goes constant
 
-	//example
-
-	//mouse input to rotate the cam
-	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f));
+	cam->rotate(elapsed_time * rotationSpeedIntro, Vector3(0.0f, -1.0f, 0.0f)); //Same as intro stage
+	cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
 	
-	
+#ifdef _DEBUG
 	posx = Input::mouse_position.x;
 	posy = Input::mouse_position.y;
 	if (Input::wasKeyPressed(SDL_SCANCODE_9)) cout << posx << "," << posy << endl;
-	//if (Input::wasKeyPressed(SDL_SCANCODE_RETURN)) cin >> text;
-	//async input to move the camera around
-	cam->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
-
 	if (Input::wasKeyPressed(SDL_SCANCODE_F5)) ReloadIcons();
+#endif
 }
 
 
@@ -530,7 +506,6 @@ void ControlsStage::update(float elapsed_time)
 
 
 //GameStage
-
 void GameStage::render()
 {
 	//set flags
@@ -538,75 +513,74 @@ void GameStage::render()
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 
-	Camera* cam = Game::instance->camera;
+	Camera* cam = Game::instance->camera; //Gets the camera
 	glDisable(GL_DEPTH_TEST);
-	sky->render();
+	sky->render(); //Renders the sky
 	glEnable(GL_DEPTH_TEST);
 
-	if (!entities.empty())
-	{
+	if (!entities.empty()) //Check if the entities list is empty
+	{	//Renders the entities in the scene
 		for (size_t i = 0; i < entities.size(); i++)
 			RenderMesh(entities[i]->model, entities[i]->mesh, entities[i]->texture, shader, cam);
 	}
 
-	Texture* tex = Texture::Get("data/playermodels/Character.png");
+	Texture* tex = Texture::Get("data/playermodels/Character.png"); //Gets the texture
 
-	Shader* a_shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
+	Shader* a_shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs"); //And the shader
 
-	Matrix44 playerModel;
+	Matrix44 playerModel; //Get the model for the player (where the camera is)
 	playerModel.translate(player->pos.x, player->pos.y, player->pos.z);
-	playerModel.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
+	playerModel.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0)); //Move and rotate depending on where the player is looking
 
-	Matrix44 camModel = playerModel;
-	camModel.rotate(player->pitch * DEG2RAD, Vector3(1, 0, 0));
-	Vector3 eye = playerModel * Vector3(0.0f, 0.45f, 0.0f);
+	Matrix44 camModel = playerModel; //get the camera mode
+	camModel.rotate(player->pitch * DEG2RAD, Vector3(1, 0, 0)); //Set the rotation
+	Vector3 eye = playerModel * Vector3(0.0f, 0.45f, 0.0f); //The eye
 	if(Stage_ID == TABERN)
 		eye = playerModel * Vector3(0.0f, 2.45f, 0.0f);
-	Vector3 center = cam->center;
+	Vector3 center = cam->center; //Center
 	if (!yAxisCam)
 		center = eye + camModel.rotateVector(Vector3(0, 0, 1));
-	Vector3 up = camModel.rotateVector(Vector3(0, 1, 0));
-	cam->enable();
-	cam->lookAt(eye, center, up);
-	//set the camera as default
-	//Parentar model --> Offset respecte player que defineix on esta l'arma
-	Matrix44 swordModel;
-	Vector3 swordOffset = weapon.weaponOffset;
+	Vector3 up = camModel.rotateVector(Vector3(0, 1, 0)); //And up
+	cam->enable(); //Enable it
+	cam->lookAt(eye, center, up); //Change where it looks at
+	Matrix44 swordModel; //Create the swordmodel
+	Vector3 swordOffset = weapon.weaponOffset; //Add the offset
 	swordModel.setTranslation(swordOffset.x, swordOffset.y, swordOffset.z);
 	swordModel.rotate(-90.0f * DEG2RAD, Vector3(0, 1, 0));
 	swordModel.scale(1 / 25.0f, 1 / 25.0f, 1 / 25.0f);
-	swordModel = swordModel * playerModel;
-	if (weapon.defType!= NONE)
+	swordModel = swordModel * playerModel; //Make it move with the player model matrix
+	//Player weapon animations
+	if (weapon.defType!= NONE) //Defence animations
 	{
-		if (weapon.defType== UP)
+		if (weapon.defType== UP) //Up animation
 		{
 			//motion defence up
 			swordModel.translate(0.0f, weapon.defenceMotionUp, weapon.defenceMotion);
 			swordModel.rotate(weapon.defenceRotation * DEG2RAD, Vector3(1, 0, 0));
 		}
-		else
+		else //Left and right animations
 		{
 			swordModel.translate(0.0f, 0.0f, weapon.defenceMotion);
 		}
 	}
-	if (weapon.movementMotion)
+	if (weapon.movementMotion) //When moving
 	{
 		Matrix44 T;
-		T.setTranslation(0.0f, 0.025f * sin(Game::instance->time) + 0.05f, 0.0f);
+		T.setTranslation(0.0f, 0.025f * sin(Game::instance->time) + 0.05f, 0.0f); //Oscilates up and down
 		swordModel = swordModel * T;
 	}
-	swordModel.rotate(weapon.attackMotion * DEG2RAD, Vector3(0, 0, 1));
-	if(Stage_ID != TABERN) RenderMesh(swordModel, weapon.entity->mesh, weapon.entity->texture, shader, cam);
+	swordModel.rotate(weapon.attackMotion * DEG2RAD, Vector3(0, 0, 1)); //And rotates in chase needed when attacking up
+	if(Stage_ID != TABERN) RenderMesh(swordModel, weapon.entity->mesh, weapon.entity->texture, shader, cam); //If the stage is the tabern, there is no sword
 	if (Stage_ID == MAP) {
-		if (list.first || list.third || obj == LVLUP) {
+		if (list.first || list.third || obj == LVLUP) { //Renders the objective arrows
 			if (sphereTabern) {
 				Matrix44 T;
-				T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
+				T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f); //Oscilate up and down
 				sphereTabern->model = sphereTabern->model * T;
-				RenderMesh(sphereTabern->model, sphereTabern->mesh, sphereTabern->texture, shader, cam);
+				RenderMesh(sphereTabern->model, sphereTabern->mesh, sphereTabern->texture, shader, cam); 
 			}
 		}
-		else{
+		else{ //Same for the arena
 			if (sphereArena) {
 				Matrix44 T;
 				T.setTranslation(0.0f, 0.005f * sin(Game::instance->time), 0.0f);
@@ -615,10 +589,10 @@ void GameStage::render()
 			}
 		}
 	}
-	if (Stage_ID == ARENA)
-	{
+	if (Stage_ID == ARENA) //If the stage is the arena
+	{ //Get the animation
 		sANIMATION anim = Game::instance->sanimation;
-		for (size_t i = 0; i < enemies.size(); i++)
+		for (size_t i = 0; i < enemies.size(); i++) //Render the enemies into the idle animation
 		{
 			int x = enemies[i]->id;
 			Matrix44 enemyModel = Matrix44();
@@ -651,38 +625,38 @@ void GameStage::render()
 				animateWeapon(a_shader, anim.idle_attack[x], swordModel, enemyModel, cam, weapon);
 			}
 
-			//RenderMesh(/*GL_TRIANGLES, */enemies[0]->model, idle_mesh, enemies[0]->texture, a_shader, cam);
 			a_shader->disable();
 
 		}
-		if (currentEnemy != NULL) {
-			if (Attack == DOWN) {
+		if (currentEnemy != NULL) { //If there is a fight
+			 //Get the animation for each attack
+			if (Attack == DOWN) { //Damage animation
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.down_attack[x], anim.down_mesh[x], currentEnemy, durationTime, cam);
 				animateWeapon(a_shader, anim.down_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
-			else if (Attack == NONE && isBattle) {
+			else if (Attack == NONE && isBattle) { //Idle animation
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.idle_attack[x], anim.idle_mesh[x], currentEnemy, durationTime, cam);
 				animateWeapon(a_shader, anim.idle_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
-			else if (Attack == UP) {
+			else if (Attack == UP) { //Upper attack animation
 
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.up_attack[x], anim.up_mesh[x], currentEnemy, durationTime, cam);
 				animateWeapon(a_shader, anim.up_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
-			else if (Attack == LEFT) {
+			else if (Attack == LEFT) { //Left attack animation
 
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.left_attack[x], anim.left_mesh[x], currentEnemy, durationTime, cam);
 				animateWeapon(a_shader, anim.left_attack[x], swordModel, currentEnemy->enemyEntity->model, cam, weapon);
 
 			}
-			else if (Attack == RIGHT) {
+			else if (Attack == RIGHT) { //Right attack animation
 
 				int x = currentEnemy->enemyEntity->id;
 				animate(a_shader, anim.right_attack[x], anim.right_mesh[x], currentEnemy, durationTime, cam);
@@ -690,23 +664,20 @@ void GameStage::render()
 
 			}
 		}
-		
-		
 	}
-	if (Stage_ID == TABERN)
+	if (Stage_ID == TABERN) //If stage is Tabern
 	{
-		if (barTender) {
+		if (barTender) { //Render the mesh for the NPC bartender
 			Matrix44 npc_model = Matrix44();
 			npc_model.translate(barTender->pos.x, barTender->pos.y, barTender->pos.z); 
 			npc_model.scale(barTender->scale, barTender->scale, barTender->scale);
 			npc_model.rotate(barTender->yaw * DEG2RAD, Vector3(0, 1, 0));
 			barTender->model = npc_model;
-			RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam);
-			a_shader->enable();
+			RenderMesh(npc_model, barTender->mesh, barTender->texture, shader, cam); //No animation
 		}
 	}
-	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
-	drawCrosshair();
+	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling); //Render the plane
+	drawCrosshair(); //Draws the crosshair
 #pragma region UI
 	//Render UI player
 	glDisable(GL_DEPTH_TEST);
@@ -714,13 +685,14 @@ void GameStage::render()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	if (!menu) {
+	if (!menu) { //Right corner panel with objective
 		if (list.first || list.second || list.third || (obj == BATTLE && Stage_ID != ARENA) || (obj == LVLUP && Stage_ID != ARENA)) {
-			if(!interaction) RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+			if(!interaction) RenderGUI(588, 62, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1)); //If you are not interacting, the panel keeps showing
 		}
-		if (interaction)
-			RenderGUI(397, 514, 800, 200, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
-		if (list.third && interaction && nextText > 0) {
+		if (interaction) //If you are interacting
+			RenderGUI(397, 514, 800, 200, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1)); //The text panel appears
+		if (list.third && interaction && nextText > 0) { //The buttons for the level up option
+			//Yes button
 			if (RenderButton(290, 537, 150, 80, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 				list.third = false;
 				if(!(stats.resistance == 0.5f && stats.strength == 5)) lvlUpMenu = true;
@@ -728,15 +700,17 @@ void GameStage::render()
 				obj = LVLUP;
 				interaction = false;
 			}
+			//No button
 			if (RenderButton(471, 537, 150, 80, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png")))
 			{
 				nextText = 0;
 				interaction = false;
 			}
 		}
-		if (lvlUpMenu) {
-			RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+		if (lvlUpMenu) { //Level up menu gui
+			RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1)); //The big panel
 			if (stats.strength < 5) {
+				//The button icons and each interaction
 				if(RenderButton(200, 230, 100, 100, gui_shader, Texture::Get("data/gameIcons/biceps.png"), Vector4(0, 0, 1, 1)))
 				{ 
 					stats.strength++;
@@ -745,8 +719,10 @@ void GameStage::render()
 				}
 			}
 			else {
+				//If max stat, then it becomes a GUI element only, and not a button
 				RenderGUI(200, 230, 100, 100, gui_shader, Texture::Get("data/gameIcons/biceps.png"), Vector4(0, 0, 1, 1), Vector4(1, 1, 1, 0.7));
 			}
+			//Same for resistance
 			if (stats.resistance < 0.5f)
 			{
 				if (RenderButton(200, 370, 100, 100, gui_shader, Texture::Get("data/gameIcons/muscular-torso.png"), Vector4(0, 0, 1, 1)))
@@ -759,20 +735,24 @@ void GameStage::render()
 			else {
 				RenderGUI(200, 370, 100, 100, gui_shader, Texture::Get("data/gameIcons/muscular-torso.png"), Vector4(0, 0, 1, 1), Vector4(1, 1, 1, 0.7));
 			}
-			if(stats.missing_hp != 0.0f) stats.missing_hp = 0.0f;
+			if(stats.missing_hp != 0.0f) stats.missing_hp = 0.0f; //Heals the player's hp
 		}
 	}
-	if (!menu) {
+	if (!menu) { //Renders the health bar
 		RenderGUI(209.25 - ((stats.missing_hp * 290) / 2), 45.9, 290 - (stats.missing_hp * 290), 20, gui_shader, textures[1], Vector4(0, 0, 1, 1));
 		RenderGUI(209.25, 45.9, 300, 25, gui_shader, textures[0], Vector4(0, 0, 1, 1));
 	}
 	else {
+		//If 'Esc' key is pressed
+		//Big panel
 		RenderGUI(403, 300, 805, 800, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1));
+		//RESUME BUTTON
 		if (RenderButton(400, 220, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			menu = !menu;
-		} //RESUME BUTTON
+		} //SAVE BUTTON
 		if (RenderButton(400, 307, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			//Call save function
+			//Creates the DATA structure
 			DATA current_data = {
 				{
 				stats.strength,
@@ -785,41 +765,43 @@ void GameStage::render()
 				diff,
 				lvl
 			};
-			saveGame("file1",current_data);
-			//cout << "Game Saved!" << endl;
-		} //SAVE BUTTON
+			saveGame("file1",current_data); //Saves the game into a STATS file
+#ifdef _DEBUG
+			cout << "Game Saved!" << endl;
+#endif		
+		} 
+		//MAIN MENU BUTTON
 		if (RenderButton(400, 393, 400, 100, gui_shader, Texture::Get("data/iconTextures/panel_Example1.png"), Vector4(0, 0, 1, 1), Texture::Get("data/iconTextures/panel_Example2.png"))) {
 			Game::instance->scene = INTRO;
-			Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
-			if (!existsSavedFile("data/saveFiles/file1.stats")) {
-				Game::instance->InitGameStage();
+			Game::instance->intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0)); //Resets the camera position
+			if (!existsSavedFile("data/saveFiles/file1.stats")) { //And if there is no save file
+				Game::instance->InitGameStage(); //Restart the Game
 				Game::instance->game_s->Stage_ID = MAP;
 			}
-			mapSwap = true;
+			//Booleans for diferent controlers (such as map swapping and menu)
+			mapSwap = true; 
 			menu = false;
-		}//MAIN MENU BUTTON
-		
+		}
+		//Draws the text on the menu
 		drawText(134, 94, "GAME PAUSED", Vector3(0, 0, 0), 8);
 		drawText(316, 201, "Resume", Vector3(0, 0, 0), 5);
 		drawText(271, 284, "Save game", Vector3(0, 0, 0), 5);
 		drawText(276, 375, "Main Menu", Vector3(0, 0, 0), 5);
-		//drawText(posx, posy, "Save", Vector3(0, 0, 0), 5);
 	}
-	if (Game::instance->scene != INTRO) {
-
-		if (!menu) {
-			if (obj == TUTORIAL) {
-				if (list.first) {
-					if (Stage_ID == TABERN) {
-						if (interaction) {
+	if (Game::instance->scene != INTRO) { //If the main menu is not called
+		if (!menu) { //And there is no menu
+			if (obj == TUTORIAL) { //And the objective is the first fight
+				if (list.first) { //First checkpoint
+					if (Stage_ID == TABERN) { //Enter tabern
+						if (interaction) { //When talking to the barman
 							switch (nextText) {
-							case 0:
+							case 0: //First text
 								drawText(85, 482, "Welcome to the Arena's town, where powerful\nwarriors go to the arena and test their skills", Vector3(0, 0, 0), 2.5);
 								break;
-							case 1:
+							case 1: //Second text
 								drawText(74, 483, "   You should go yourself and try it out.\nMaybe you are the new king of the Arena.", Vector3(0, 0, 0), 3);
 								break;
-							default:
+							default: //After third click
 								nextText = 0;
 								interaction = false;
 								list.second = true;
@@ -827,72 +809,61 @@ void GameStage::render()
 								break;
 							}
 						}
-						else {
+						else { //Objective text
 							drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
 						}
 					}
 					else {
-						drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
+						drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3); //If outside the tabern, objective text
 					}
 				}
-				if (list.second) {
-					if (interaction) {
-						drawText(165, 495, "GO TO THE ARENA!", Vector3(0, 0, 0), 5);
-						if (nextText > 0) {
+				if (list.second) { //Second objective
+					if (interaction) { //If reinteract with the barman
+						drawText(165, 495, "GO TO THE ARENA!", Vector3(0, 0, 0), 5); //Text
+						if (nextText > 0) { //Next click
 							interaction = false;
 							nextText = 0;
 						}
 					}
-					else drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
-					if (Stage_ID == ARENA) list.second = false;
+					else drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3); //Objective text
+					if (Stage_ID == ARENA) list.second = false; //When entering arena, third objectives starts
 				}
 		
-				if (list.third) {
-					if (Stage_ID == TABERN) {
-						if (interaction) {
+				if (list.third) { //When finishing the fights
+					if (Stage_ID == TABERN) { //On tabern
+						if (interaction) { //When talking
 							switch (nextText) {
-							case 0:
+							case 0: //First text
 								drawText(97, 504, "Welcome back! Did you enjoy your fights?", Vector3(0, 0, 0), 2.7);
 								break;
-							default:
+							default: //Level up text
 								drawText(72, 482, "Do you want to upgrade your stats with a drink?", Vector3(0, 0, 0), 2.5);
 								drawText(271, 530, "Yes", Vector3(0, 0, 0), 2);
 								drawText(459, 530, "No", Vector3(0, 0, 0), 2);
 								break;
 							}
-						}else
+						}else //Objective text
 						drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
-					}else
+					}else //Objective text
 					drawText(424, 52, "Return to the tabern", Vector3(0, 0, 0), 3);
 				}
 			}
-			else if (obj == LVLUP) {
-				if (Stage_ID == TABERN) {				
-					if (interaction) {
-						switch (nextText) {
-						case 0:
-							drawText(97, 504, "Welcome back! Did you enjoy your fights?", Vector3(0, 0, 0), 2.7);
-							break;
-						default:
-							drawText(72, 482, "Do you want to upgrade your stats with a drink?", Vector3(0, 0, 0), 2.5);
-							drawText(271, 530, "Yes", Vector3(0, 0, 0), 2);
-							drawText(459, 530, "No", Vector3(0, 0, 0), 2);
-							break;
-						}
-					}
-					else
-						if(!lvlUpMenu) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
-					if (lvlUpMenu) {
-						drawText(150, 140, "Strength beer", Vector3(0, 0, 0), 3);
+			else if (obj == LVLUP) { //Objetive level up
+				if (Stage_ID == TABERN) {
+					if(!lvlUpMenu) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3); //Draws the objective text s
+					if (lvlUpMenu) { //Level up Menu
+						drawText(150, 140, "Strength beer", Vector3(0, 0, 0), 3); //Text for each option
 						drawText(150, 290, "Resistance beer", Vector3(0, 0, 0), 3);
-						if (stats.strength < 5) {
+						//Strength
+						if (stats.strength < 5) { //Text for knowing the level
 							drawText(300, 216,"Current strength:",Vector3(0,0,0),3);
 							drawText(585, 216,to_string(stats.strength),Vector3(0,0,0),3);
 
 						}
-						else {
+						else { //If max level, the text changes
 							drawText(345, 216,"Max strength",Vector3(0,0,0),3.5);
 						}
+						//Same for resistance
 						if (stats.resistance < 0.5f) {
 							drawText(300, 360,"Current resistance:",Vector3(0,0,0),3);
 							int curr_res = stats.resistance * 10;
@@ -904,20 +875,21 @@ void GameStage::render()
 					
 					}
 					else 
-						if(!interaction) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3);
+						if(!interaction) drawText(438, 53, "Talk to the barman", Vector3(0, 0, 0), 3); //objective text
 				
 				
 				}
 				else {
-					drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3);
+					drawText(452, 54, "Go to the tabern", Vector3(0, 0, 0), 3); //Objective text
 				}
 			}
 			else {
-				if(Stage_ID != ARENA) drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3);
+				if(Stage_ID != ARENA) drawText(465, 50, "Go to the arena", Vector3(0, 0, 0), 3); //Objective text
+				if (interaction) interaction = false; //Avoid softlocks
 			}
 		}
 	}
-
+	//Disable flags
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
@@ -927,20 +899,23 @@ void GameStage::render()
 
 void GameStage::update(float elapsed_time)
 {
-	durationTime += elapsed_time * 0.75;
+	//Update time related variables
+	durationTime += elapsed_time * 0.75; 
 	cooldown -= elapsed_time * 0.75;
 	parry += elapsed_time * 0.75;
 	/*posx = Input::mouse_position.x;
 	posy = Input::mouse_position.y;*/
+#ifdef _DEBUG
 	if (Input::isKeyPressed(SDL_SCANCODE_9)) cout << cooldown << endl;
+#endif
 #pragma region SCENE_LOADER
-	if (mapSwap)
+	if (mapSwap) //Allows map swapping
 	{
-		
+		//clears the entities buffers
 		entities.clear();
 		entitiesColision.clear();
-		switch (Stage_ID) {
-		case MAP:
+		switch (Stage_ID) { //Checks which map is the next to load
+		case MAP: 
 			if (entities.size() > 0) 
 				entities.clear();
 			if (entitiesColision.size() > 0)
@@ -965,22 +940,19 @@ void GameStage::update(float elapsed_time)
 			sphereArena->model = Matrix44();
 			sphereArena->model.translate(0.57f, 0.25f, -12.66f);
 			sphereArena->pos = Vector3(0.57f, 0.25f, -12.66f);
-			//sphereArena->model.scale(0.5f,0.5f,0.5f);
 			sphereTabern->mesh = Mesh::Get("data/arrow.obj");
 			sphereTabern->texture = Texture::Get("data/arrow.png");
 			sphereTabern->model = Matrix44();
 			sphereTabern->model.translate(-11.005f, 0.25f, 2.67f);
 			sphereTabern->pos = Vector3(-11.005f, 0.25f, 2.67f);
-			//sphereTabern->model.scale(0.5f, 0.5f, 0.5f);
 			terrain->texture = Texture::Get("data/grass.tga");
 			tiling = 30.0f;
-			Sleep(250);
+			Sleep(250); //Sleep to allow the load to be done
 			break;
 		case ARENA:
 			enemies.clear();
 			LoadSceneFile("data/ArenaJordiAlex.scene", &entities, &entitiesColision);
-
-			if (lvl%3 == 0) {
+			if (lvl%3 == 0) { //Depending on the current battle
 				LoadEnemiesInScene("data/enemies1.scene", &enemies);
 			}
 			else if (lvl % 3 == 1) {
@@ -989,11 +961,11 @@ void GameStage::update(float elapsed_time)
 			else {
 				LoadEnemiesInScene("data/enemies3.scene", &enemies);
 			}
-			lvl++;
-			diff++;
-			player->pos = Vector3(37.41f, 0.0f, -27.66f);
+			lvl++; //Changes the next battle
+			diff++; //And the difficulty
+			player->pos = Vector3(37.41f, 0.0f, -27.66f); 
 			player->yaw = -435.6f;
-			terrain->texture = Texture::Get("data/sand.tga");
+			terrain->texture = Texture::Get("data/sand.tga"); //Changes the terrain texture
 			tiling = 200.0f;
 			Sleep(250);
 			break;
@@ -1001,7 +973,7 @@ void GameStage::update(float elapsed_time)
 			LoadSceneFile("data/TabernJordiAlex.scene", &entities, &entitiesColision);
 			if (!barTender) {
 				barTender = new EntityMesh();
-				barTender->mesh = Mesh::Get("data/playermodels/Character7.obj");
+				barTender->mesh = Mesh::Get("data/playermodels/Character7.obj"); //Adds the barman
 				barTender->texture = Texture::Get("data/playermodels/Character.png");
 				barTender->pos = Vector3(0.03f, 0.1f, 1.6f);
 				barTender->scale = 0.25f;
@@ -1009,17 +981,16 @@ void GameStage::update(float elapsed_time)
 			}
 			player->pos = Vector3(0.01f,0.0f,-8.30f);
 			player->yaw = -360.25f;
-			//terrain->texture = Texture::Get("data/textures/arena.png");
 			Sleep(250);
 			break;
 
 		}
-		mapSwap = false;
+		mapSwap = false; //Avoid multiple map loading
 	}
-	if (!menu) {
 #pragma endregion SCENE_LOADER
 #pragma region PLAYER_MOVEMENT
-		float playerSpeed = 5.0f * elapsed_time;
+	if (!menu) { //If you are playing
+		float playerSpeed = 5.0f * elapsed_time; //Player speed
 		if (Stage_ID == MAP)
 		{
 			Matrix44 playerRotation;
@@ -1027,7 +998,10 @@ void GameStage::update(float elapsed_time)
 			Vector3 playerVel;
 			Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
 			Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+#ifdef _DEBUG
 			if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
+#endif
+			//Movement
 			if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
 			if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
 			if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
@@ -1036,7 +1010,7 @@ void GameStage::update(float elapsed_time)
 
 			Vector3 nexPos = player->pos + playerVel;
 			COL_RETURN ret;
-
+			//Check colision with objective arrows
 			if (CheckColision(player->pos, nexPos, sphereArena, elapsed_time, 1.5f).colision && (list.second || obj == BATTLE)) {
 				mapSwap = true;
 				previous_stage = Stage_ID;
@@ -1048,7 +1022,7 @@ void GameStage::update(float elapsed_time)
 				Stage_ID = TABERN;
 			}
 			else {
-				for (size_t i = 0; i < entities.size(); i++)
+				for (size_t i = 0; i < entities.size(); i++) //Check colision with props
 				{
 					ret = CheckColision(player->pos, nexPos, entities[i], elapsed_time, 1.0f);
 					if (ret.colision) {
@@ -1067,7 +1041,9 @@ void GameStage::update(float elapsed_time)
 			Vector3 playerVel;
 			Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
 			Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+#ifdef _DEBUG
 			if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
+#endif
 			if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
 			if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
 			if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
@@ -1075,7 +1051,7 @@ void GameStage::update(float elapsed_time)
 
 			Vector3 nexPos = player->pos + playerVel;
 			COL_RETURN ret;
-			for (size_t i = 0; i < entitiesColision.size(); i++)
+			for (size_t i = 0; i < entitiesColision.size(); i++) //Checks colision with props (ignoring the ground or the roof
 			{
 				ret = CheckColision(player->pos, nexPos, entitiesColision[i], elapsed_time, 0.75f);
 				if (ret.colision) {
@@ -1092,36 +1068,39 @@ void GameStage::update(float elapsed_time)
 			}
 			player->pos = nexPos;
 		}
-		else {
-			if (isBattle)
+		else { //Arena 
+			if (isBattle) //If battle
 			{
-				weapon.movementMotion = false;
-				if (currentEnemy->hp > 0) {
-					if (currentEnemy->EmptyAttacks() && cooldown <= 0) {
+				weapon.movementMotion = false; //Deactivate the weapon motion
+				if (currentEnemy->hp > 0) { //If the enemy is alive
+					if (currentEnemy->EmptyAttacks() && cooldown <= 0) { //has no attacks
 						//Wait until hit
-						Attack = NONE;
+						Attack = NONE; //Idle
 						if (weapon.attacked) {
-							Attack = DOWN;
+							Attack = DOWN; //Damage
 							currentEnemy->GenerateAttacks();
 							currentEnemy->hp -= stats.strength;
+#ifdef _DEBUG
 							cout << "Enemy current health: " << currentEnemy->hp << endl;
+#endif
 							cooldown = 2.0f;
 							waitTime = 0.0f;
 							durationTime = 0.75f;
 						}
-						else if (waitTime >= 5.0f) {
+						else if (waitTime >= 5.0f) { //If the player does no attack after 5 seconds
 							currentEnemy->GenerateAttacks();
 							waitTime = 0.0f;
 						}
 						else {
-							waitTime += elapsed_time;
+							waitTime += elapsed_time; //Add more to the wait time
 						}
 						
 					}
-					else if (cooldown <= 0) {
+					else if (cooldown <= 0) { //After the animation of the first attack
 						POSITION nextAttack = currentEnemy->GetNextAttack();
 						//Animaciones enemigo
 						Attack = nextAttack;
+#ifdef _DEBUG
 						switch (Attack) {
 						case UP: 
 							cout << "UP" << endl;
@@ -1133,16 +1112,17 @@ void GameStage::update(float elapsed_time)
 							cout << "LEFT" << endl;
 							break;
 						}
+#endif
 						durationTime = -0.25f;
 						cooldown = 2.0f;
 					}
-					else if (cooldown <= 1.0f && cooldown > 0.0f && !(Attack == NONE || Attack == DOWN)) {
+					else if (cooldown <= 1.0f && cooldown > 0.0f && !(Attack == NONE || Attack == DOWN)) { //Player defensive position
 						parried = Attack == weapon.defType;
 
-						if (curr_SFX_channel != 0)
+						if (curr_SFX_channel != 0) //Stops the previous SFX sound
 							Audio::Stop(curr_SFX_channel);
 
-						switch (Attack) {
+						switch (Attack) { //Depending on the attack the sound is different
 						case UP:
 							if (parried) currentSFX = BASS_SampleLoad(false, Game::instance->audios[0].c_str(), 0, 0, 3, 0);
 							else currentSFX = BASS_SampleLoad(false, Game::instance->audios[3].c_str(), 0, 0, 3, 0);
@@ -1170,47 +1150,49 @@ void GameStage::update(float elapsed_time)
 							break;
 
 						}
-						if (!parried) {
-							stats.missing_hp += 1 - (0.4f + stats.resistance);
+						if (!parried) { //If you miss the defence
+							stats.missing_hp += 1 - (0.4f + stats.resistance); //Lose hp
 						}
 						else {
 							weapon.defType = NONE;
 						}
 						cooldown = 0.0f;
-						BASS_ChannelPlay(curr_SFX_channel, false);
+						BASS_ChannelPlay(curr_SFX_channel, false); //Plays the audio
 						parried = false;
 					}
 					weapon.attacked = false;
 				}
 				else {
-					currentEnemy->enemyEntity->destroy();
+					currentEnemy->enemyEntity->destroy(); //When killing the enemy, destroy the entity
 					for (size_t i = 0; i < enemies.size(); i++)
 					{
-						if (enemies[i] == currentEnemy->enemyEntity) {
+						if (enemies[i] == currentEnemy->enemyEntity) { //Erase it from the array
 							enemies.erase(enemies.begin() + i);
 						}
 					}
 					currentEnemy = NULL;
-					isBattle = false;
+					isBattle = false; //End battle
 				}
 
-				if (enemies.size() <= 0) {
+				if (enemies.size() <= 0) { //If all enemies have been defeated
 					mapSwap = true;
 					previous_stage = Stage_ID;
-					if (obj != TUTORIAL) obj = LVLUP;
+					if (obj != TUTORIAL) obj = LVLUP; 
 					list.third = true;
-					Stage_ID = MAP;
+					Stage_ID = MAP;//Go back to map
 
 				}
 			}
-			else {
+			else { //You can move if you are not in battle
 				Matrix44 playerRotation;
 				playerRotation.rotate(player->yaw * DEG2RAD, Vector3(0, 1, 0));
 				Vector3 playerVel;
 				Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
 				Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
 
+#ifdef _DEBUG
 				if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) playerSpeed *= 2.0f;
+#endif
 				if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel - (forward * playerSpeed);
 				if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel + (forward * playerSpeed);
 				if (Input::isKeyPressed(SDL_SCANCODE_A)) playerVel = playerVel + (right * playerSpeed);
@@ -1220,7 +1202,7 @@ void GameStage::update(float elapsed_time)
 
 				Vector3 nexPos = player->pos + playerVel;
 
-				COL_RETURN ret1;
+				COL_RETURN ret1; //Colision to the boundaries of the arena
 				for (size_t i = 0; i < entitiesColision.size(); i++)
 				{
 					Matrix44 cubeModel = Matrix44();
@@ -1236,7 +1218,7 @@ void GameStage::update(float elapsed_time)
 				player->pos = nexPos;
 				
 
-				COL_RETURN ret;
+				COL_RETURN ret; //Colision to the enemies
 				for (size_t i = 0; i < enemies.size(); i++)
 				{
 					ret = CheckColision(player->pos, nexPos, enemies[i], elapsed_time);
@@ -1256,8 +1238,8 @@ void GameStage::update(float elapsed_time)
 			}
 
 		}
-		if (stats.missing_hp >= 1.0f) {
-			
+		if (stats.missing_hp >= 1.0f) { //Death 
+			//Init the game over
 			Game::instance->gameOver->cam = Game::instance->camera;
 			Game::instance->gameOver->entities = entities;
 			Game::instance->gameOver->enemies = enemies;
@@ -1267,38 +1249,41 @@ void GameStage::update(float elapsed_time)
 			Game::instance->gameOver->sky = sky;
 			Game::instance->gameOver->terrain = terrain;
 			stats.missing_hp = 0.0f;
-			Game::instance->scene = GAMEOVER;
+			Game::instance->scene = GAMEOVER; //Change scene
 		}
 	}
 #pragma endregion PLAYER_MOVEMENT
 
 #pragma region CAMERA_MOVEMENT
-	if (lvlUpMenu) {
+	if (lvlUpMenu) { //If you are not leveling up, cursor is shown
 		SDL_ShowCursor(true);
 	}
-	else {
+	else { //Show cursor also on interaction or menu
 		if (interaction || menu) SDL_ShowCursor(true);
 		else SDL_ShowCursor(false);
 	
-		if (menu != !interaction) {
+		if (menu != !interaction) { //And if neither of those, move the camera with the centered mouse
 			player->yaw += -Input::mouse_delta.x * 5.0f * elapsed_time;
 			if (!toggle) Input::centerMouse();
 			else SDL_ShowCursor(true);
 		}
 
 	}
+#ifdef _DEBUG
 	if (Input::wasKeyPressed(SDL_SCANCODE_8)) toggle = !toggle;
+#endif
 #pragma endregion CAMERA_MOVEMENT
 
 #pragma region WEAPON_MOVEMENT
 	float weapon_speed = 70.0f;
-	if (weapon.attack)
+	if (weapon.attack) //Weapon animations
 	{
-		if (weapon.down)
+		if (weapon.down) //Moving down
 			weapon.attackMotion -= 5.0f * elapsed_time * weapon_speed;
-		else
+		else //moving up
 			weapon.attackMotion += 5.0f * elapsed_time * weapon_speed;
-		if (weapon.attackMotion <= -90.0f)
+
+		if (weapon.attackMotion <= -90.0f) //check if up or down
 		{
 			weapon.down = false;
 		}
@@ -1308,6 +1293,7 @@ void GameStage::update(float elapsed_time)
 			weapon.attackMotion = 0.0f;
 		}
 	}
+	//Defence animations
 	if (weapon.defence)
 	{
 		if (weapon.defType == LEFT)
@@ -1387,8 +1373,8 @@ void GameStage::update(float elapsed_time)
 		}
 	}
 #pragma endregion WEAPON_MOVEMENT
-	if (!mapSwap) {
 #pragma region ENEMY_BEHAVIOUR
+	if (!mapSwap) {
 		if (Stage_ID == ARENA) {
 			//lookat of enemies
 			for (size_t i = 0; i < enemies.size(); i++)
@@ -1435,10 +1421,17 @@ void GameStage::update(float elapsed_time)
 
 	}
 	if(!mapSwap) previous_stage = Stage_ID;
-	/*if (Input::wasKeyPressed(SDL_SCANCODE_COMMA)) {
+#ifdef _DEBUG
+	if (Input::wasKeyPressed(SDL_SCANCODE_COMMA)) {
 		enemies.clear();
-		LoadEnemiesInScene("data/enemies.scene", &enemies);
-	}*/
+		if (lvl % 3 == 0)//Depending on the current battle
+			LoadEnemiesInScene("data/enemies1.scene", &enemies);
+		else if (lvl % 3 == 1) 
+			LoadEnemiesInScene("data/enemies2.scene", &enemies);
+		else
+			LoadEnemiesInScene("data/enemies3.scene", &enemies);
+	}
+#endif
 }
 
 //GameOverStage
@@ -1453,10 +1446,10 @@ void GameOverStage::render()
 	glDisable(GL_CULL_FACE);
 
 	glDisable(GL_DEPTH_TEST);
-	sky->render();
+	sky->render(); //Render the sky
 	glEnable(GL_DEPTH_TEST);
 
-	if (!entities.empty())
+	if (!entities.empty()) //Render the entities
 	{
 		for (size_t i = 0; i < entities.size(); i++) {
 			RenderMesh(entities[i]->model, entities[i]->mesh, entities[i]->texture, shader, cam);
@@ -1464,7 +1457,7 @@ void GameOverStage::render()
 	}
 	RenderPlane(terrain->model, terrain->mesh, terrain->texture, terrain->shader, cam, tiling);
 
-	if (!enemies.empty())
+	if (!enemies.empty()) //Render the enemies
 	{
 		for (size_t i = 0; i < enemies.size(); i++)
 		{
@@ -1473,7 +1466,7 @@ void GameOverStage::render()
 			enemyModel.scale(enemies[i]->scale, enemies[i]->scale, enemies[i]->scale);
 			enemyModel.rotate(enemies[i]->yaw * DEG2RAD, Vector3(0, 1, 0));
 			enemies[i]->model = enemyModel;
-			RenderMesh(enemyModel, enemies[i]->mesh, enemies[i]->texture, shader, cam);
+			RenderMesh(enemyModel, enemies[i]->mesh, enemies[i]->texture, shader, cam); //"T-Pose mesh"
 		}
 	}
 
@@ -1482,7 +1475,7 @@ void GameOverStage::render()
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	float winWidth, winHeight;
+	float winWidth, winHeight; //Render the gui
 	winWidth = Game::instance->window_width;
 	winHeight = Game::instance->window_width;
 	float halfWidth = winWidth * 0.5f;
@@ -1497,9 +1490,9 @@ void GameOverStage::render()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-	drawText(190.0, 152.15,"YOU DIED!",Vector3(1,0,0),10.0f);
+	drawText(190.0, 152.15,"YOU DIED!",Vector3(1,0,0),10.0f); //You died text
 }
-
+//No need to update anything
 void GameOverStage::update(float elapsed_time)
 {
 }

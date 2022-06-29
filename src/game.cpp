@@ -18,29 +18,10 @@ Shader* shader = NULL;
 Animation* anim = NULL;
 float angle = 0, padding = 10.0f;
 float mouse_speed = 1.0f;
-FBO* fbo = NULL;
-float loadDistance = 200.0f;
-float no_render_distance = 1000.0f;
-bool cameraLocked = false, yAxisCam = false, checkCol = false, editorMode = false, attack = false, down = true, movementMotion = false, defence = false;
-bool defMotion = false, defMotionUp = false, defRotation = false;
-float colisionRadius = 2.0f, attackMotion = 0.0f, defenceMotion = 0.0f, defenceMotionUp = 0.0f, defenceRotation = 0.0f;
-POSITION defType = NONE;
+bool defence = false;
 
-bool meshSwap = false;
-int currMeshIdx = 0;
-vector<string> meshnames, texnames;
-string currentMesh = "data/editor/barn.obj", currentTex = "data/editor/materials.tga";
 
-EntityMesh* player;
-EntityMesh* sword;
-EntityMap* terrain;
-EntityMap* sky;
-
-Mesh* groundMesh;
-Texture* groundTex;
-vector<EntityMesh*> meshes;
 Game* Game::instance = NULL;
-EntityMesh* SelectedEntity;
 
 bool mapSwap = false;
 
@@ -62,21 +43,10 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
 	glEnable( GL_DEPTH_TEST ); //check the occlusions using the Z buffer
 
-	//gameAudio = new Audio();
-	//gameAudio = Audio::Get("");
+
 	audios = get_all_audio_files(); 
-	/*
-	0, 1, 2 -> sword clash
-	3 -> 7 -> damage soundEffect
-	*/
 	songs = get_all_song_files();
-	/*
-	0 -> Coliseum
-	1 -> Intro+Controls
-	2 -> Map
-	3 -> Tabern
-	*/
-	//gameAudio->Play("data/audio/Coliseum OST.wav",0);
+
 	if (BASS_Init(-1, 44100, 0, 0, NULL) == false) //-1 significa usar el por defecto del sistema operativo
 	{
 		//error abriendo la tarjeta de sonido...
@@ -139,6 +109,7 @@ void Game::render(void)
 	wasLeftButtonPressed = false;
 	SDL_GL_SwapWindow(this->window);
 }
+#ifdef _DEBUG
 //Adding entities
 void AddEntityInFront(Camera* cam, const char* meshName, const char* texName)
 {
@@ -188,13 +159,14 @@ void RotateSelected(float angleDegrees)
 	}
 	SelectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
 }
+#endif
 void Game::update(double seconds_elapsed)
 {
 
 	current_stage->update(seconds_elapsed);
-	switch (scene)
+	switch (scene) //Switch that controls the scene changing
 	{
-	case INTRO:
+	case INTRO: 
 		current_stage = intro;
 		if (current_song != songs[1]) {
 			Audio::Stop(currentChannel);
@@ -212,7 +184,7 @@ void Game::update(double seconds_elapsed)
 		current_stage = controls;
 		break;
 	case GAME:
-		current_stage = game_s;
+		current_stage = game_s; //When changing into the game, check if the current song is the main menu song
 		if (current_song == songs[1])
 		{
 			Audio::Stop(currentChannel);
@@ -226,7 +198,7 @@ void Game::update(double seconds_elapsed)
 		}
 		else {
 			bool changeSound = false;
-			switch (game_s->Stage_ID) {
+			switch (game_s->Stage_ID) { //Changes the sounds respective to the current map
 			case MAP:
 				if (current_song != songs[2]) {
 					current_song = songs[2];
@@ -247,7 +219,7 @@ void Game::update(double seconds_elapsed)
 				break;
 			
 			}
-			if (changeSound) {
+			if (changeSound) { //Changes the sound respect to the sound meant to be listened
 				Audio::Stop(currentChannel);
 				currentSound = BASS_SampleLoad(false, current_song.c_str(), 0, 0, 3, 0);
 				if (currentSound == 0) {
@@ -262,12 +234,9 @@ void Game::update(double seconds_elapsed)
 		break;
 	case GAMEOVER:
 		current_stage = gameOver;
-		/*
-		Game over song
-		*/
 		break;
 	}
-	BASS_ChannelSetAttribute(currentChannel, BASS_ATTRIB_VOL, volume);
+	BASS_ChannelSetAttribute(currentChannel, BASS_ATTRIB_VOL, volume); //Sets the volume for the music
 }
 
 //Keyboard event handler (sync input)
@@ -277,7 +246,7 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 	{
 		case SDLK_ESCAPE:  
 			if (current_stage == game_s) {
-				GameStage* stg = (GameStage*)current_stage;
+				GameStage* stg = (GameStage*)current_stage; //If game stage, open menu, else, go back to intro stage
 				if (stg->interaction) {
 					stg->menu = !stg->interaction;
 					stg->interaction = stg->menu;
@@ -291,31 +260,37 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 				scene = INTRO;
 				intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0)); 
 			}
-			break; //ESC key, kill the app
+			break; 
+#ifndef _DEBUG
 		case SDLK_F1: Shader::ReloadAll(); break; 
-		case SDLK_F2: 
+		case SDLK_F2:
 			cout << "Camera positions: \nEye: (" << camera->eye.x << "," << camera->eye.y << "," << camera->eye.z << ")\n"
 				<< "Center: (" << camera->center.x << ", " << camera->center.y << ", " << camera->center.z << ")\n"
 				<< "Up: (" << camera->up.x << ", " << camera->up.y << ", " << camera->up.z << ")\n" << endl;
 			break;
 		case SDLK_F3:
-			checkCol = !checkCol;
-			if (checkCol) cout << "Checking colisions!" << endl;
-			else cout << "Adding entities!" << endl;
-			break;
-		case SDLK_F4:
-			editorMode = !editorMode;
-			if (editorMode) {
-				cout << "Editor mode on" << endl;
-				cout << "Available meshes:" << endl;
-				for (size_t i = 0; i < meshnames.size(); i++)
-				{
-					cout << i << ") " << meshnames[i] << endl;
-				}
+			if (current_stage == game_s)
+			{
+				GameStage* stg = (GameStage*)current_stage;
+				stg->mapSwap = true;
+				stg->Stage_ID = (STAGE_ID)((stg->Stage_ID + 1) % 3);
 			}
 			break;
-		case SDLK_KP_PLUS: RotateSelected(10.0f); break;
-		case SDLK_KP_MINUS: RotateSelected(-10.0f); break;
+		case SDLK_F4:
+			if (current_stage == game_s)
+			{
+				GameStage* stg = (GameStage*)current_stage;
+				stg->debug = !stg->debug;
+			}
+			break;
+		case SDLK_F5:
+			if (current_stage == game_s)
+			{
+				GameStage* stg = (GameStage*)current_stage;
+				cout << "Player yaw: ( " << stg->player->yaw << ")" << endl;
+				cout << "Player position: ( " << stg->player->pos.x << "," << stg->player->pos.y << "," << stg->player->pos.z << ")" << endl;
+			}break;
+#endif
 		case SDLK_RIGHT:
 			if (current_stage == game_s) {
 				GameStage* stg = (GameStage*)current_stage;
@@ -364,29 +339,6 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 
 				}
 			}
-			break;
-		case SDLK_0:
-			if (current_stage == game_s)
-			{
-				GameStage* stg = (GameStage*)current_stage;
-				stg->mapSwap = true;
-				stg->Stage_ID = (STAGE_ID)((stg->Stage_ID + 1) % 3);
-			}
-			break;
-		case SDLK_F6:
-			if (current_stage == game_s)
-			{
-				GameStage* stg = (GameStage*)current_stage;
-				stg->debug = !stg->debug;
-			}
-			break;
-		case SDLK_F7:
-			if (current_stage == game_s)
-			{
-				GameStage* stg = (GameStage*)current_stage;
-				cout << "Player yaw: ( " << stg->player->yaw << ")" << endl;
-				cout << "Player position: ( " << stg->player->pos.x << ","<< stg->player->pos.y << "," << stg->player->pos.z << ")" << endl;
-			}
 	} 
 }
 
@@ -406,26 +358,6 @@ void Game::onGamepadButtonUp(SDL_JoyButtonEvent event)
 
 void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 {
-	if (event.button == SDL_BUTTON_MIDDLE) //middle mouse
-	{
-		mouse_locked = !mouse_locked;
-		SDL_ShowCursor(!mouse_locked);
-	}
-	if (event.button == SDL_BUTTON_RIGHT)
-	{
-		if (!checkCol)
-		{
-			if (editorMode)
-			{
-				AddEntityInFront(camera, currentMesh.c_str(), currentTex.c_str());
-				cout << "Object added" << endl;
-			}
-		}
-		else
-		{
-			CheckCol(camera);
-		}
-	}
 	if (event.button == SDL_BUTTON_LEFT)
 	{
 		if (current_stage == game_s)
@@ -449,7 +381,6 @@ void Game::onMouseButtonDown( SDL_MouseButtonEvent event )
 		else
 		{
 			wasLeftButtonPressed = true;
-			//cout << "left click" << endl;
 		}
 	}
 }
@@ -477,13 +408,16 @@ void Game::InitIntroStage()
 	//Intro stage init
 	intro = new IntroStage();
 
+	//Load the shader used on the intro stage
 	intro->a_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
-	intro->icons = get_all_files_names_within_icons();
-	intro->num_iconfiles = intro->icons.size();
-	for (size_t i = 0; i < intro->num_iconfiles; i++)
+	intro->icons = get_all_files_names_within_icons(); //Read the files inside the folder
+	intro->num_iconfiles = intro->icons.size(); //Get all the icons
+	for (size_t i = 0; i < intro->num_iconfiles; i++) //Get their positions
 	{
 		intro->positions.push_back(readPosition(intro->icons[i].c_str())); //controlsIconsTextures
 	}
+
+	//Add the textures
 	intro->textures.push_back(Texture::Get("data/iconTextures/Play Button.png"));
 	intro->textures.push_back(Texture::Get("data/iconTextures/Controls Button.png"));
 	intro->textures.push_back(Texture::Get("data/iconTextures/Exit Button.png"));
@@ -498,22 +432,22 @@ void Game::InitIntroStage()
 	intro->terrain->mesh = new Mesh();
 	intro->terrain->mesh->createPlane(7000);
 	intro->terrain->texture = Texture::Get("data/sand.tga");
-	intro->terrain->shader = shader;
+	intro->terrain->shader = shader; //Terrain with the basic shader
 	//Sky
 	intro->sky = new EntityMap();
 	intro->sky->mesh = Mesh::Get("data/cielo.ASE");
 	intro->sky->texture = Texture::Get("data/cielo.tga");
-	intro->sky->shader = shader;
+	intro->sky->shader = shader; //Sky box with the basic shader
 
 	//Colosseum
 	intro->colosseum = new EntityMesh();
 	intro->colosseum->mesh = Mesh::Get("data/props/Coliseo.obj");
-	intro->colosseum->texture = Texture::Get("data/textures/Coliseo.png");
+	intro->colosseum->texture = Texture::Get("data/textures/Coliseo.png"); //Printed coliseum
 
 	//Camera
 	intro->cam = new Camera();
 	intro->cam = Game::instance->camera;
-	intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+	intro->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0)); //Camera that orbits the coliseum
 }
 
 void Game::InitControlsStage()
@@ -521,26 +455,26 @@ void Game::InitControlsStage()
 	//Controls stage init
 	controls = new ControlsStage();
 
-	controls->a_shader = intro->a_shader;
+	controls->a_shader = intro->a_shader; //Add the same shader as the intro one (since most of it is UI related)
 	//Sky
-	controls->sky = intro->sky;
-
+	controls->sky = intro->sky; //Same with sky
 
 	//Terrain
-	controls->terrain = intro->terrain;
+	controls->terrain = intro->terrain; //And terrain
 
 	//Colosseum
-	controls->colosseum = intro->colosseum;
+	controls->colosseum = intro->colosseum; //Also the coliseum, so it conserves the position respect the intro camera
 
 	//Cam
 	controls->cam = new Camera();
-	controls->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0));
+	controls->cam->lookAt(Vector3(148.92f, 77.76f, 57.58f), Vector3(30.0f, 21.99f, 9.88f), Vector3(0, 1, 0)); //Add the camera in the same position as the intro (modified in the stage)
 
-	controls->icons = get_all_files_names_within_folder();
-	for (size_t i = 0; i < controls->icons.size(); i++)
+	controls->icons = get_all_files_names_within_folder(); //Get all icons
+	for (size_t i = 0; i < controls->icons.size(); i++) //Add their respective positions
 	{
 		controls->positions.push_back(readPosition(controls->icons[i].c_str()));
 	}
+	//Add the texture for all icons (they use the same icons)
 	controls->textures.push_back(Texture::Get("data/controlsIconsTextures/box.png"));
 }
 
@@ -548,40 +482,40 @@ void Game::InitControlsStage()
 
 void Game::InitGameStage() {
 	//Game Stage Init
-	game_s = new GameStage();
+	game_s = new GameStage(); //Instance
 
-	game_s->sky = new EntityMap();
-	game_s->sky->mesh = Mesh::Get("data/cielo.ASE");
-	game_s->terrain = new EntityMap();
-	game_s->sky->texture = new Texture();
-	game_s->sky->texture->load("data/cielo.tga");
-	game_s->terrain->mesh = new Mesh();
+	game_s->sky = new EntityMap(); //Add the sky box
+	game_s->sky->mesh = Mesh::Get("data/cielo.ASE"); 
+	game_s->terrain = new EntityMap(); //Add the terrain
+	game_s->sky->texture = Texture::Get("data/cielo.tga"); //Texture for sky box
+	game_s->terrain->mesh = new Mesh(); //Mesh for terrain
 	game_s->terrain->mesh->createPlane(100);
-	game_s->terrain->texture = Texture::Get("data/grass.tga");
+	game_s->terrain->texture = Texture::Get("data/grass.tga"); //And texture
 
-	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar_frame.png"));
+	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar_frame.png")); //UI elements (HP bar)
 	game_s->textures.push_back(Texture::Get("data/gameIcons/hp_bar.png"));
 
+	//Load basic stats for player
 	game_s->stats = {
 		1,
 		0.0f,
 		0.1f
 	};
-	game_s->shader = new Shader();
+	//Add shader for meshes and GUI
 	game_s->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 	game_s->gui_shader = Shader::Get("data/shaders/basic.vs", "data/shaders/gui.fs");
 
-	game_s->sky->shader = game_s->shader;
-	game_s->terrain->shader = game_s->shader;
-	game_s->player = new EntityMesh();
-	game_s->weapon.entity = new EntityMesh();
-	game_s->weapon.entity->mesh = Mesh::Get("data/props/sword.obj");
-	game_s->weapon.entity->texture = Texture::Get("data/textures/sword.png");
-	game_s->weapon.entity->scale = 1 / 20.0f;
+	game_s->sky->shader = game_s->shader; //Add the respective shader to sky
+	game_s->terrain->shader = game_s->shader; //And to terrain
+	game_s->player = new EntityMesh(); //Create the Entity for the player
+	game_s->weapon.entity = new EntityMesh(); //Add the entity for the weapon
+	game_s->weapon.entity->mesh = Mesh::Get("data/props/sword.obj"); //Get the mesh
+	game_s->weapon.entity->texture = Texture::Get("data/textures/sword.png"); //And its texture
+	game_s->weapon.entity->scale = 1 / 20.0f; //Scale it respective to the player view
 }
 
 void Game::InitGameOver()
 {
-	gameOver = new GameOverStage();
+	gameOver = new GameOverStage(); //Just initialize the instance
 }
 

@@ -294,7 +294,9 @@ ICON_POSITION readPosition(const char* filename)
 {
 	TextParser sceneParser = TextParser();
 	if (!sceneParser.create(filename)) return ICON_POSITION();
+#ifdef _DEBUG
 	cout << "File loaded correctly!" << endl;
+#endif
 	sceneParser.seek("START");
 	ICON_POSITION ret{ 0.0f, 0.0f };
 	while (sceneParser.eof() == 0)
@@ -321,7 +323,7 @@ void saveGame(const char* filename, DATA game_data)
 	MyFile << "STAGE: " << game_data.curr_stage << endl;
 	MyFile << "DIFF: " << game_data.diff << endl;
 	MyFile << "LVL: " << game_data.battleFile;
-
+	//Writes everything into the file
 	MyFile.close();
 }
 DATA loadGame(const char* filename) {
@@ -355,12 +357,16 @@ DATA loadGame(const char* filename) {
 			ret.battleFile = sceneParser.getint();
 	}
 	ret.modified = true;
+#ifdef _DEBUG
 	cout << "File loaded correctly!" << endl;
+#endif
 	return ret;
 }
 void deleteSavedFile(const char* filename) {
 	if (remove(filename) != 0) return;
+#ifdef _DEBUG
 	cout << "Game deleted" << endl;
+#endif
 }
 bool existsSavedFile(const char* filename)
 {
@@ -371,17 +377,12 @@ bool existsSavedFile(const char* filename)
 #pragma region AUDIO_HANDLER
 void PlayGameSound(const char* filename, bool restart) {
 
-
 	Audio* current_audio = Audio::Get(filename);
-
 	HSAMPLE hSample = current_audio->LoadSample(filename);
-
-
 	//El handler para un canal
 	HCHANNEL hSampleChannel;
 	// Creamos un canal para el sample
-	hSampleChannel = BASS_SampleGetChannel(hSample, false);
-
+	hSampleChannel = BASS_SampleGetChannel(hSample, true);
 	// Lanzamos un sample
 	BASS_ChannelPlay(hSampleChannel, restart);
 }
